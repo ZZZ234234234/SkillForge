@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Document a CLI command that requires a config file.",
+    "output": "Show the config file, exact command, expected output and the error when the config is absent."
+  }
+]

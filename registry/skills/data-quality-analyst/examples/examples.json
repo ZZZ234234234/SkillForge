@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A CSV has empty ages and age zero.",
+    "output": "Count empty and zero values separately and explain validation policy before altering data."
+  }
+]

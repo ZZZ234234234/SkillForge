@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Compare two studies with different populations.",
+    "output": "Describe each population and endpoint before comparing findings; avoid treating unequal cohorts as equivalent."
+  }
+]

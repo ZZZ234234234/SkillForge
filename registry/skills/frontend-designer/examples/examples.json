@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A fixed 1200px editor overflows on iPad.",
+    "output": "Use flexible tracks, a collapsible navigator and a tab for the inspector on narrow screens."
+  }
+]

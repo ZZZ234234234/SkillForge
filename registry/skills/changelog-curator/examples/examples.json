@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A release renames a configuration option.",
+    "output": "List the old and new names, migration example and compatibility behavior."
+  }
+]

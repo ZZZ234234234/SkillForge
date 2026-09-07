@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Prepare v0.1.0 from the current commit.",
+    "output": "Report the exact source revision, build results, artifact names and SHA256 values before publication."
+  }
+]

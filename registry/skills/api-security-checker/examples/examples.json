@@ -1,0 +1,6 @@
+[
+  {
+    "input": "An endpoint returns records by arbitrary user-supplied ID.",
+    "output": "Check resource ownership on the server for every request and return a non-disclosing access error."
+  }
+]

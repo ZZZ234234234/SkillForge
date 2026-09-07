@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A parser accepts malformed JSON.",
+    "output": "Add malformed-input and round-trip tests, then record the actual runner result."
+  }
+]

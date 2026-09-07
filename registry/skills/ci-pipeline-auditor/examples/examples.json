@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A pull_request_target workflow checks out untrusted PR code.",
+    "output": "Explain the credential exposure path and separate untrusted checks from privileged publishing."
+  }
+]

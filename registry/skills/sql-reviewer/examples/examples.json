@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A LEFT JOIN is filtered by the right table in WHERE.",
+    "output": "Explain that the filter can remove unmatched rows; move the condition to ON if preserving them is intended."
+  }
+]

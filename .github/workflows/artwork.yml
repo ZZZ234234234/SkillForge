@@ -1,0 +1,27 @@
+name: Restore preview artwork
+on:
+  push:
+    branches: [main]
+    paths: ['assets/social-preview/**', '.github/workflows/artwork.yml', 'scripts/restore-assets.mjs']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  artwork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/restore-assets.mjs
+      - name: Commit verified artwork
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/social-preview.png public/og.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'Restore verified SkillForge preview artwork'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

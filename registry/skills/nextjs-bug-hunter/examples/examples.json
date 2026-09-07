@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A component reads localStorage during server render.",
+    "output": "Move browser storage access to a client effect and keep the initial server/client markup identical."
+  }
+]

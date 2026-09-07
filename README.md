@@ -1,4 +1,4 @@
-![SkillForge brand artwork](docs/social-preview.png)
+![SkillForge brand artwork](https://skillforge.honey-chick-7267.chatgpt.site/og.png)
 
 <div align="center">
 
@@ -16,6 +16,8 @@
 [Quick Start](#quick-start) · [Explore Demo](https://skillforge.honey-chick-7267.chatgpt.site/demo) · [Browse Skills](registry/registry.json) · [中文说明](#中文说明)
 
 </div>
+
+![SkillForge actual deployed interface](docs/screenshot.jpg)
 
 SkillForge is a local-first **Skill Manager** for developers building AI agents. Create a reusable playbook, inspect its structure and tool permissions, test its contracts, and export a portable package.
 
@@ -59,7 +61,7 @@ The UI uses React, TypeScript, Tailwind and shadcn/ui, with Next.js App Router c
 4. Review the output, add tests, save it and compare it against another skill.
 5. Export ZIP, JSON, Markdown or a platform directory package.
 
-Browser-based screenshots and GIF capture were blocked in the creation environment. No fabricated product screenshot is shown. See [recording instructions](docs/DEMO_RECORDING.md) and [deployment instructions](docs/DEPLOY_DEMO.md). A public deployment is available at [SkillForge](https://skillforge.honey-chick-7267.chatgpt.site); the deployment service reports success and public access. Browser interaction and anonymous-session checks remain unverified in this environment.
+The screenshot above was captured by the deployment service from the actual site. Interactive browser checks and GIF capture were blocked in the creation environment. See [recording instructions](docs/DEMO_RECORDING.md) and [deployment instructions](docs/DEPLOY_DEMO.md). A public deployment is available at [SkillForge](https://skillforge.honey-chick-7267.chatgpt.site); the deployment service reports success and public access. Browser interaction and anonymous-session checks remain unverified in this environment.
 
 ## Features and boundaries
 
@@ -127,7 +129,7 @@ References: [Agent Skills specification](https://agentskills.io/specification), 
 
 ### Official Distribution & Authenticity
 
-Official repository: **[ZZZ234234234/SkillForge](https://github.com/ZZZ234234234/SkillForge)**. The first official GitHub Release remains pending workflow verification.
+Official repository: **[ZZZ234234234/SkillForge](https://github.com/ZZZ234234234/SkillForge)**. The first official Release remains pending workflow verification.
 
 **Official releases are distributed only through this repository’s GitHub Releases page.** Third-party file-sharing sites are not official distribution channels. Names such as “SkillForge Official”, “SkillForge Pro” or “SkillForge Installer” do not establish authenticity. No official desktop installer exists in this version.
 

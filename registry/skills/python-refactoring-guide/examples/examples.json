@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Two functions duplicate input validation.",
+    "output": "Extract a shared validator with the same exceptions and retain behavior tests for both callers."
+  }
+]

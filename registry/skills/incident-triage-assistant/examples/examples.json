@@ -1,0 +1,6 @@
+[
+  {
+    "input": "Errors increased after a deployment.",
+    "output": "Compare the deployment time, affected endpoints and error rates before assigning causation."
+  }
+]

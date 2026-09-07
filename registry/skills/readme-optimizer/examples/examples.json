@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A README begins with 100 lines of configuration.",
+    "output": "Move the product summary, real screenshot and quick start above advanced configuration without deleting it."
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "repository": "ZZZ234234234/SkillForge",
+  "description": "Open-source platform to build, test, inspect and manage skills for AI agents | AI Agent Skills 开发与管理工具",
+  "topics": [
+    "ai",
+    "ai-agent",
+    "agent",
+    "agentic-ai",
+    "agent-skills",
+    "skills",
+    "llm",
+    "developer-tools",
+    "codex",
+    "claude-code",
+    "mcp",
+    "prompt-engineering",
+    "open-source",
+    "nextjs",
+    "typescript",
+    "local-first"
+  ],
+  "homepage": "https://skillforge.honey-chick-7267.chatgpt.site",
+  "socialPreview": "docs/social-preview.png"
+}

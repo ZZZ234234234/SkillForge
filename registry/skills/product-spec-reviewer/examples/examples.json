@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A spec requires offline operation and mandatory cloud login.",
+    "output": "Flag the conflict and ask which flows must work offline; propose separable acceptance criteria."
+  }
+]

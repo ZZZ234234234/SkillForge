@@ -1,0 +1,6 @@
+[
+  {
+    "input": "A React component calls fetch during render.",
+    "output": "Move the request into an effect or data layer; render must stay pure. Add loading and error states."
+  }
+]
