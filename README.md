@@ -134,7 +134,7 @@ Official repository: **[ZZZ234234234/SkillForge](https://github.com/ZZZ234234234
 
 **Official releases are distributed only through this repository’s GitHub Releases page.** Third-party file-sharing sites are not official distribution channels. Names such as “SkillForge Official”, “SkillForge Pro” or “SkillForge Installer” do not establish authenticity. No official desktop installer exists in this version.
 
-The release workflow packages source and web assets, produces `SHA256SUMS.txt`, and generates GitHub artifact attestations before publication. **v0.1.0 has a published [build provenance attestation](https://github.com/ZZZ234234234/SkillForge/attestations/45767095) covering both ZIP files**, confirmed in its [successful release workflow](https://github.com/ZZZ234234234/SkillForge/actions/runs/34134904392). Verify the exact version and file you download; this is provenance, not a security audit.
+The release workflow packages source and web assets, produces `SHA256SUMS.txt`, and generates GitHub artifact attestations before publication. **v0.1.1 has a published [build provenance attestation](https://github.com/ZZZ234234234/SkillForge/attestations/45898209) covering both ZIP files**, confirmed in its [successful release workflow](https://github.com/ZZZ234234234/SkillForge/actions/runs/34200874592). Verify the exact version and file you download; this is provenance, not a security audit.
 
 For an artifact that actually appears in an official Release:
 
@@ -144,13 +144,13 @@ sha256sum -c SHA256SUMS.txt
 # macOS
 shasum -a 256 -c SHA256SUMS.txt
 # Windows: compare the printed digest with SHA256SUMS.txt
-certutil -hashfile "SkillForge-v0.1.0-source.zip" SHA256
+certutil -hashfile "SkillForge-v0.1.1-source.zip" SHA256
 ```
 
 A checksum detects changed bytes; it does not independently prove who published them. Obtain checksums from the same verified official Release. If that Release has successfully generated attestations, verify the exact artifact:
 
 ```bash
-gh attestation verify SkillForge-v0.1.0-source.zip --repo ZZZ234234234/SkillForge
+gh attestation verify SkillForge-v0.1.1-source.zip --repo ZZZ234234234/SkillForge
 ```
 
 An absent attestation is not a verified artifact. [GitHub provenance documentation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds).

@@ -17,3 +17,7 @@ Checked on 2026-09-08 against the public `/demo` deployment, initially v0.1.0.
 The comparison check exposed a v0.1.0 bug: a negative text assertion matched its own serialized test definition. v0.1.1 restricts rule matching to authored behavioral fields and includes a regression test for both false passes and false failures.
 
 The browser console contained extension metadata errors, with `chrome-extension://` origins; no application error was observed during these checks. This is a sampled interaction check, not exhaustive browser coverage. Phone/iPad layouts, file download completion and real paid-model calls are not claimed as verified. ZIP creation and import round-trip are covered by automated domain tests.
+
+## v0.1.1 follow-up
+
+After deployment on 2026-09-08, the browser loaded the v0.1.1 footer and reran the same saved Next.js-generated suite against the same two skills. Both now pass 1/1; the previously failing Next.js skill no longer matches the negative assertion in its own test definition. Tokens remain N/A and no tool calls are reported.
