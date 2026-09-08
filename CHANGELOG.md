@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 — release candidate, 2026-09-07
+## 0.1.1 — 2026-09-08
+
+- Fix rule evaluation matching against its own assertions and examples. Only authored behavioral fields now participate in text rules.
+- Add a regression test covering false passes and false failures.
+- Record verified GitHub release provenance and real desktop browser checks.
+- Resolve the official repository link in the deployed About page.
+- Select release notes by the actual package version.
+
+## 0.1.0 — 2026-09-07
 
 ### Added
 - Local browser skill library with 18 labeled demo entries, filters, search and favorites.

@@ -328,7 +328,7 @@ export function Library({
       <footer className="workspace-footer">
         <span>LOCAL-FIRST. OPEN SOURCE. YOUR SKILLS.</span>
         <span>
-          SkillForge <span className="mono">v0.1.0</span>
+          SkillForge <span className="mono">v0.1.1</span>
         </span>
       </footer>
     </div>

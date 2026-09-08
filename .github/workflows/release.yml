@@ -57,4 +57,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
-        run: gh release create "$RELEASE_TAG" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "SkillForge $RELEASE_TAG" --notes-file docs/RELEASE-v0.1.0.md
+        run: gh release create "$RELEASE_TAG" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "SkillForge $RELEASE_TAG" --notes-file "docs/RELEASE-$RELEASE_TAG.md"

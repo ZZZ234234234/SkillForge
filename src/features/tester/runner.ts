@@ -35,7 +35,22 @@ export async function runTest(
       r.notes =
         "Mock: replays the first example. No evaluation and no model execution.";
     } else if (mode === "rule") {
-      const text = skillMarkdown(skill).toLowerCase();
+      // Evaluate authored instructions, not examples or the assertions themselves.
+      const text = [
+        skill.role,
+        ...skill.goals,
+        skill.instructions,
+        ...skill.workflow,
+        ...skill.tools.map(
+          (tool) => `${tool.name}\n${tool.description}\n${tool.permissions}`,
+        ),
+        ...skill.constraints,
+        skill.inputFormat,
+        skill.outputFormat,
+        skill.errorHandling,
+      ]
+        .join("\n")
+        .toLowerCase();
       const results = test.assertions.map((a) => ({
         assertion: a,
         pass:

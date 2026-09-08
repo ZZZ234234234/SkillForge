@@ -12,7 +12,7 @@ Description:
 Open-source platform to build, test, inspect and manage skills for AI agents | AI Agent Skills 开发与管理工具
 ```
 
-Do not initialize a second README, .gitignore or license when creating the empty repository; all are present in the prepared source.
+The public repository is created, source is uploaded, and Description is verified. The remaining repository settings are Website, Topics and Social Preview.
 
 Website/Homepage: `https://skillforge.honey-chick-7267.chatgpt.site`
 
@@ -26,4 +26,4 @@ After code is uploaded, open the repository About panel's gear icon to set Descr
 
 If you have the official GitHub CLI installed and authenticated, `npm run github:setup` creates the repository when missing and sets Description, Topics and the verified Homepage. This helper does not push code or create a release.
 
-After reviewing the uploaded source and a successful CI run, tag the release revision `v0.1.0` and push the tag. The release workflow runs the checks, builds archives, creates SHA256SUMS.txt, requests attestations and publishes only after those steps succeed. A workflow definition is not proof of a completed run.
+v0.1.0 is published with successful CI, SHA256SUMS and an attestation for both ZIP files. Future package-version commits on main trigger the same verified release process; tags and manual dispatch are also supported. Existing releases are left intact.

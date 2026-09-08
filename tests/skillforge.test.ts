@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { SkillTest } from "../src/types/skill";
 import { validateSkill } from "../src/features/skills/schema";
 import {
   parseSkill,
@@ -190,6 +191,24 @@ test("rule evaluation checks contracts and does not fabricate model usage", asyn
     "rule",
   );
   assert.equal(fail.status, "fail");
+});
+test("rule evaluation excludes its own assertions and example text", async () => {
+  const skill = structuredClone(sample);
+  const testCase: SkillTest = {
+    ...skill.tests[0],
+    assertions: [{ kind: "contains", value: "assertion-only-marker" }],
+  };
+  skill.tests = [testCase];
+  skill.examples = [
+    { input: "assertion-only-marker", output: "example-only-marker" },
+  ];
+  assert.equal((await runTest(skill, testCase, "rule")).status, "fail");
+  testCase.assertions = [
+    { kind: "notContains", value: "assertion-only-marker" },
+  ];
+  assert.equal((await runTest(skill, testCase, "rule")).status, "pass");
+  skill.instructions += "\nassertion-only-marker";
+  assert.equal((await runTest(skill, testCase, "rule")).status, "fail");
 });
 test("empty rules and mock examples are skipped, not fake passes", async () => {
   assert.equal(

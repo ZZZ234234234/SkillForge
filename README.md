@@ -1,4 +1,4 @@
-![SkillForge brand artwork](https://skillforge.honey-chick-7267.chatgpt.site/og.png)
+![SkillForge brand artwork](docs/social-preview.png)
 
 <div align="center">
 
@@ -11,7 +11,8 @@
 ![MIT License](https://img.shields.io/badge/license-MIT-b8ed78?style=flat-square)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square)
 ![Local First](https://img.shields.io/badge/storage-local--first-777777?style=flat-square)
-![Version](https://img.shields.io/badge/version-0.1.0--candidate-777777?style=flat-square)
+[![Latest Release](https://img.shields.io/github/v/release/ZZZ234234234/SkillForge?style=flat-square)](https://github.com/ZZZ234234234/SkillForge/releases)
+[![Build Lint Test](https://github.com/ZZZ234234234/SkillForge/actions/workflows/ci.yml/badge.svg)](https://github.com/ZZZ234234234/SkillForge/actions/workflows/ci.yml)
 
 [Quick Start](#quick-start) · [Explore Demo](https://skillforge.honey-chick-7267.chatgpt.site/demo) · [Browse Skills](registry/registry.json) · [中文说明](#中文说明)
 
@@ -61,11 +62,11 @@ The UI uses React, TypeScript, Tailwind and shadcn/ui, with Next.js App Router c
 4. Review the output, add tests, save it and compare it against another skill.
 5. Export ZIP, JSON, Markdown or a platform directory package.
 
-The screenshot above was captured by the deployment service from the actual site. Interactive browser checks and GIF capture were blocked in the creation environment. See [recording instructions](docs/DEMO_RECORDING.md) and [deployment instructions](docs/DEPLOY_DEMO.md). A public deployment is available at [SkillForge](https://skillforge.honey-chick-7267.chatgpt.site); the deployment service reports success and public access. Browser interaction and anonymous-session checks remain unverified in this environment.
+The screenshot above shows the actual deployed site. Public access, search, editing, live scoring, offline generation, rule comparison, language/theme switching and saved browser data have been exercised in a real desktop browser. Download-file observation timed out even though the app reported a prepared file; ZIP encoding/import round-trip passed automated tests. Mobile/iPad visual checks, paid-model calls and GIF recording remain unverified. See [browser verification](docs/BROWSER_QA.md), [recording instructions](docs/DEMO_RECORDING.md) and [deployment instructions](docs/DEPLOY_DEMO.md).
 
 ## Features and boundaries
 
-| Feature | v0.1.0 candidate behavior |
+| Feature | v0.1.x behavior |
 | --- | --- |
 | Library | Search, categories, sorting, tags, favorites, local install state, copy, delete and export |
 | Editor | Form/Code modes, basic safe Markdown preview, valid-code autosave, undo/redo, code search, JSON/Markdown formatting |
@@ -85,7 +86,7 @@ The screenshot above was captured by the deployment service from the actual site
 
 **Quality Score is heuristic and intended as a development aid.** Checks are transparent text/structure rules. A high score does not prove task quality, consistency or safety. Conflict checks recognize limited English patterns; they are not semantic verification.
 
-- **Rule Evaluation** checks the Skill's instruction text and nonempty sections. It does not execute the test input or judge real task behavior.
+- **Rule Evaluation** checks the Skill's role, goals, instructions, workflow, tool definitions, constraints, input/output formats, error handling and nonempty sections. Test assertions and example text are excluded from text matching. It does not execute the test input or judge real task behavior.
 - **Mock Evaluation** replays an example and returns `skipped`, never an invented pass rate.
 - **LLM Evaluation** sends the skill and input to your configured provider, then asks a model to judge its response. No tools execute. The judge may be wrong. Network time is included. Tokens are `N/A` when not reported.
 - Comparison uses one selected suite for every selected skill. Rule timing is not an agent performance benchmark.
@@ -129,11 +130,11 @@ References: [Agent Skills specification](https://agentskills.io/specification), 
 
 ### Official Distribution & Authenticity
 
-Official repository: **[ZZZ234234234/SkillForge](https://github.com/ZZZ234234234/SkillForge)**. The first official Release remains pending workflow verification.
+Official repository: **[ZZZ234234234/SkillForge](https://github.com/ZZZ234234234/SkillForge)**. The first official [v0.1.0 Release](https://github.com/ZZZ234234234/SkillForge/releases/tag/v0.1.0) was published successfully on 2026-09-07.
 
 **Official releases are distributed only through this repository’s GitHub Releases page.** Third-party file-sharing sites are not official distribution channels. Names such as “SkillForge Official”, “SkillForge Pro” or “SkillForge Installer” do not establish authenticity. No official desktop installer exists in this version.
 
-The release workflow packages source and web assets, produces `SHA256SUMS.txt`, and is configured to request GitHub artifact attestations. **Attestation is configured but not yet verified by a successful GitHub Actions run.** Do not interpret configuration as an existing provenance statement.
+The release workflow packages source and web assets, produces `SHA256SUMS.txt`, and generates GitHub artifact attestations before publication. **v0.1.0 has a published [build provenance attestation](https://github.com/ZZZ234234234/SkillForge/attestations/45767095) covering both ZIP files**, confirmed in its [successful release workflow](https://github.com/ZZZ234234234/SkillForge/actions/runs/34134904392). Verify the exact version and file you download; this is provenance, not a security audit.
 
 For an artifact that actually appears in an official Release:
 
@@ -164,7 +165,7 @@ Secret detection is pattern-based, has false positives and false negatives, and 
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and [release candidate notes](docs/RELEASE-v0.1.0.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and [release notes](docs/RELEASE-v0.1.1.md).
 
 ## Roadmap
 
