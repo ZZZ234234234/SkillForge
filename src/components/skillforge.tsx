@@ -1,6 +1,5 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Compass,
   Package,
@@ -23,6 +22,7 @@ import {
   PanelLeft,
   Bot,
   Play,
+  HardDrive,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -51,6 +51,7 @@ import { Generator } from "./generator";
 import { Tester } from "./tester";
 import { Runner } from "./runner";
 import { Steward } from "./steward";
+import { InstallDialog, LocalView, type InstallRequest } from "./local";
 import { Pick, words, download } from "./controls";
 import { registrySkills } from "../features/skills/registry";
 import { blankSkill, skillSchema } from "../features/skills/schema";
@@ -63,19 +64,52 @@ import {
 } from "../features/skills/archive";
 import { packageFiles, adapters } from "../adapters";
 import { detectSecrets, redactSecrets } from "../features/inspector/engine";
-import { BrowserStorage } from "../storage";
+import { BrowserStorage, type SkillStorage } from "../storage";
+import {
+  desktop as dk,
+  fileKey,
+  linkOf,
+  mainPath,
+  DesktopStorage,
+  type DesktopEnv,
+  type InstallRecord,
+  type LocalFile,
+  type LocalItem,
+  type ScanResult,
+} from "../features/local/bridge";
+import {
+  adopt,
+  contentHash,
+  fromLocal,
+  hashAfterWriteBack,
+  keepLibrary,
+  reconcile,
+  sourceOf,
+  stamp,
+  type SyncNote,
+} from "../features/local/convert";
 import type {
   Skill,
   Language,
   ModelSettings,
   TestResult,
 } from "../types/skill";
+const HOME_VIEW = dk ? "local" : "explore";
+/** 写入磁盘的安装包：与网页版导出的目录结构一致，去掉最外层目录名。 */
+function packageFor(s: Skill): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(packageFiles(s, "generic")).map(([k, v]) => [
+      k.slice(s.name.length + 1),
+      v,
+    ]),
+  );
+}
 export default function SkillForge({ demo = false }: { demo?: boolean }) {
   const [skills, setSkills] = useState<Skill[]>(registrySkills),
     [results, setResults] = useState<TestResult[]>([]),
     [ready, setReady] = useState(false),
     [storageBlocked, setStorageBlocked] = useState(false),
-    [view, setView] = useState("explore"),
+    [view, setView] = useState(HOME_VIEW),
     [selected, setSelected] = useState<string | null>(null),
     [lang, setLang] = useState<Language>("zh"),
     [light, setLight] = useState(false),
@@ -89,19 +123,96 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
       apiKey: "",
     }),
     [saveStatus, setSaveStatus] = useState(""),
-    [imported, setImported] = useState<Skill[] | null>(null);
-  const storage = useRef(
-    new BrowserStorage(demo ? "skillforge-demo-v1" : "skillforge-local-v1"),
+    [imported, setImported] = useState<Skill[] | null>(null),
+    [scan, setScan] = useState<ScanResult | null>(null),
+    [contents, setContents] = useState<Map<string, LocalFile>>(new Map()),
+    [installs, setInstalls] = useState<Record<string, InstallRecord>>({}),
+    [scanError, setScanError] = useState<string | null>(null),
+    [env, setEnv] = useState<DesktopEnv | null>(null),
+    [refreshing, setRefreshing] = useState(false),
+    [installReq, setInstallReq] = useState<InstallRequest | null>(null);
+  const storage = useRef<SkillStorage>(
+    dk
+      ? new DesktopStorage(demo ? "skillforge-demo-v1" : "skillforge-local-v1")
+      : new BrowserStorage(demo ? "skillforge-demo-v1" : "skillforge-local-v1"),
   );
   const uploader = useRef<HTMLInputElement>(null),
-    folder = useRef<HTMLInputElement>(null);
+    folder = useRef<HTMLInputElement>(null),
+    skillsRef = useRef<Skill[]>(skills),
+    scanSeq = useRef(0),
+    mounted = useRef(true),
+    applyScanRef = useRef<(r: ScanResult, notify: boolean) => Promise<void>>(
+      async () => {},
+    );
   const t = words(lang),
     skill = skills.find((s) => s.id === selected);
+  const loadInstalls = useCallback(async () => {
+    if (dk) setInstalls((await dk.installs()) ?? {});
+  }, []);
+  /** 把一次扫描结果落到界面：读取文件内容，并让链接到本机文件的技能跟上磁盘。 */
+  const applyScan = useCallback(
+    async (result: ScanResult, notify: boolean) => {
+      if (!dk) return;
+      const seq = ++scanSeq.current;
+      const linked = skillsRef.current.flatMap((s) => {
+        const p = linkOf(s)?.path;
+        return p ? [p] : [];
+      });
+      const paths = [...new Set([...result.items.map(mainPath), ...linked])];
+      const files = await dk.read(paths);
+      if (seq !== scanSeq.current || !mounted.current) return;
+      const map = new Map(files.map((f) => [fileKey(f.path), f]));
+      let notes: SyncNote[] = [];
+      setSkills((all) => {
+        const r = reconcile({
+          skills: all,
+          items: result.items,
+          files: map,
+          roots: result.roots,
+          now: Date.now(),
+        });
+        notes = r.notes;
+        return r.next;
+      });
+      setContents(map);
+      setScan(result);
+      setScanError(
+        result.roots.find((r) => r.error)?.error ??
+          files.find((f) => f.error)?.error ??
+          null,
+      );
+      if (notify && notes.length) {
+        const count = (k: SyncNote["kind"]) => notes.filter((n) => n.kind === k).length;
+        const updated = count("updated"),
+          conflicts = notes.filter((n) => n.kind === "conflict"),
+          missing = notes.filter((n) => n.kind === "missing");
+        if (updated)
+          toast.message(
+            t(
+              `已按磁盘内容更新 ${updated} 个技能`,
+              `${updated} skill(s) updated from disk`,
+            ),
+          );
+        for (const n of conflicts)
+          toast.warning(
+            t(
+              `「${n.name}」在磁盘和技能库里都有修改，请在本机技能里选择保留哪一版`,
+              `“${n.name}” changed on disk and in the library. Choose which version to keep in Local Skills`,
+            ),
+          );
+        for (const n of missing)
+          toast.warning(
+            t(`「${n.name}」的源文件已被移除`, `The source file of “${n.name}” was removed`),
+          );
+      }
+    },
+    [t],
+  );
   useEffect(() => {
     let active = true;
     void storage.current
       .read()
-      .then((d) => {
+      .then(async (d) => {
         if (!active) return;
         setSkills(d?.skills ?? registrySkills());
         setResults(d?.results ?? []);
@@ -119,6 +230,14 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
             }));
         } catch {}
         setReady(true);
+        // 桌面端：先读技能库，再做第一次扫描，这样才知道哪些技能链接到了本机文件
+        if (dk)
+          return applyScanRef.current(await dk.scan(), false)
+            .then(() => loadInstalls())
+            .catch((e) => {
+              if (active)
+                setScanError(e instanceof Error ? e.message : String(e));
+            });
       })
       .catch(() => {
         if (active) {
@@ -133,6 +252,39 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
     return () => {
       active = false;
     };
+  }, [loadInstalls]);
+  useEffect(() => {
+    skillsRef.current = skills;
+  }, [skills]);
+  useEffect(() => {
+    mounted.current = true;
+    applyScanRef.current = applyScan;
+  });
+  useEffect(() => {
+    if (!dk || !ready) return;
+    const off = dk.onScan((r) => {
+      void applyScanRef.current(r, true);
+    });
+    return () => {
+      off();
+      mounted.current = false;
+    };
+  }, [ready]);
+  useEffect(() => {
+    if (dk) void dk.env().then(setEnv).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!dk) return;
+    let active = true;
+    void dk
+      .installs()
+      .then((r) => {
+        if (active) setInstalls(r ?? {});
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = light ? "light" : "dark";
@@ -144,7 +296,15 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
       void storage.current
         .write({ skills, results })
         .then(() =>
-          setSaveStatus(lang === "zh" ? "已保存到浏览器" : "Saved in browser"),
+          setSaveStatus(
+            dk
+              ? lang === "zh"
+                ? "已保存到本机文件"
+                : "Saved on this computer"
+              : lang === "zh"
+                ? "已保存到浏览器"
+                : "Saved in browser",
+          ),
         )
         .catch(() => {
           setSaveStatus(
@@ -202,6 +362,16 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
     setSelected(null);
   };
   const install = (s: Skill) => {
+    // 桌面版：“安装”是写入所选 Agent 的技能文件夹，完成后再标记为已安装
+    if (dk) {
+      setInstallReq({
+        title: s.displayName,
+        name: s.name,
+        files: packageFor(s),
+        skillId: s.id,
+      });
+      return;
+    }
     change({ ...s, status: "Installed" });
     toast.success(
       t(
@@ -210,6 +380,123 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
       ),
     );
   };
+  const fail = (e: unknown) =>
+    toast.error(e instanceof Error ? e.message : String(e));
+  const refreshScan = async () => {
+    if (!dk) return;
+    setRefreshing(true);
+    try {
+      await applyScanRef.current(await dk.scan(), true);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const addRoot = async () => {
+    if (!dk) return;
+    try {
+      await dk.addRoot();
+      await refreshScan();
+    } catch (e) {
+      fail(e);
+    }
+  };
+  const removeRoot = async (id: string) => {
+    if (!dk) return;
+    try {
+      await dk.removeRoot(id);
+      await refreshScan();
+    } catch (e) {
+      fail(e);
+    }
+  };
+  /** 导入本机技能：副本链接到磁盘上的文件，之后磁盘有改动会自动跟进。 */
+  const importLocal = (item: LocalItem) => {
+    if (!dk || !scan) return;
+    const key = fileKey(mainPath(item));
+    const existing = skills.find(
+      (s) => linkOf(s) && fileKey(linkOf(s)!.path) === key,
+    );
+    if (existing) return open(existing);
+    const { skill: fresh, warning } = fromLocal(
+      sourceOf(item, scan.roots, contents),
+    );
+    // 留在“本机技能”页，方便连续导入；行内会出现“打开”按钮
+    addQuietly(stamp(fresh));
+    toast.success(
+      t(
+        `已导入「${fresh.displayName}」，并与本机文件保持同步`,
+        `Added “${fresh.displayName}”; it now follows the file on disk`,
+      ),
+    );
+    if (warning) toast.warning(warning);
+  };
+  const withLocal = (s: Skill, local: NonNullable<ReturnType<typeof linkOf>>): Skill => ({
+    ...s,
+    metadata: { ...s.metadata, local },
+  });
+  /** 把技能库里的版本写回它来源的 SKILL.md。 */
+  const writeBack = async (s: Skill) => {
+    const link = linkOf(s);
+    if (!dk || !link) return;
+    const md = skillMarkdown(s);
+    const name = link.dir.split(/[\\/]/).pop() ?? s.name;
+    try {
+      await dk.install({
+        rootId: link.rootId,
+        name,
+        files: { "SKILL.md": md, "skill.json": JSON.stringify(s, null, 2) },
+        overwrite: true,
+        skillId: s.id,
+      });
+      const round = hashAfterWriteBack(s, md),
+        lib = contentHash(s);
+      change(withLocal(s, { ...link, syncedHash: round ?? lib, conflict: false, missing: false }));
+      toast.success(t("已写回 SKILL.md", "Written back to SKILL.md"));
+      if (round !== null && round !== lib)
+        toast.info(
+          t(
+            "技能库里有 SKILL.md 表达不了的内容（例如 Instructions 中的二级标题），它们不会出现在文件里。",
+            "Some content cannot be expressed in SKILL.md (for example level-2 headings inside Instructions) and is not in the file.",
+          ),
+        );
+      await loadInstalls();
+    } catch (e) {
+      fail(e);
+    }
+  };
+  const useDisk = (s: Skill) => {
+    const link = linkOf(s);
+    if (!scan || !link) return;
+    const item = scan.items.find((i) => fileKey(mainPath(i)) === fileKey(link.path));
+    if (!item) return;
+    change(adopt(s, fromLocal(sourceOf(item, scan.roots, contents)).skill, Date.now()));
+    toast.success(t("已改用磁盘上的版本", "Switched to the version on disk"));
+  };
+  const keepMine = (s: Skill, diskHash: string) => {
+    change(keepLibrary(s, diskHash));
+    toast.message(
+      t("保留了技能库里的版本，可点“写回 SKILL.md”更新磁盘文件", "Kept the library version. Use “Write back” to update the file on disk"),
+    );
+  };
+  const uninstallLocal = async (record: InstallRecord) => {
+    if (!dk) return;
+    try {
+      const r = await dk.uninstall({ dir: record.dir });
+      await loadInstalls();
+      toast.success(
+        t(
+          `已卸载，${r.removed} 个文件移入回收站`,
+          `Uninstalled; ${r.removed} file(s) moved to the Recycle Bin`,
+        ),
+      );
+    } catch (e) {
+      fail(e);
+    }
+  };
+  const show = (path: string) => dk?.showItem({ path }).catch(fail);
+  const openFile = (path: string) => dk?.openFile({ path }).catch(fail);
   const read = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(true);
@@ -277,6 +564,9 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
     toast.success(t("已生成下载文件", "Download prepared"));
   };
   const navigation = [
+    ...(dk
+      ? [{ id: "local", icon: HardDrive, zh: "本机技能", en: "Local Skills" }]
+      : []),
     { id: "explore", icon: Compass, zh: "发现", en: "Explore" },
     { id: "installed", icon: Package, zh: "已安装", en: "Installed" },
     { id: "mine", icon: FolderCode, zh: "我的技能", en: "My Skills" },
@@ -291,13 +581,27 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
       <div className="sf-shell">
         <Sidebar className="sf-sidebar">
           <SidebarHeader>
-            <Link href="/" className="brand">
+            {/*
+              这个组件同时给网页版和 Electron 桌面版用，桌面版不能依赖 next/link，
+              所以这里用普通链接：网页版回到首页，桌面版回到起始视图。
+            */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a
+              href="/"
+              className="brand"
+              onClick={(e) => {
+                if (dk) {
+                  e.preventDefault();
+                  nav(HOME_VIEW);
+                }
+              }}
+            >
               <span className="brand-mark">
                 <Terminal size={22} />
               </span>
               <strong>SkillForge</strong>
               <span className="version-badge">BETA</span>
-            </Link>
+            </a>
             <div className="workspace-picker">
               <span className="workspace-avatar">S</span>
               <span>
@@ -350,10 +654,15 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
               </span>
               <h4>{t("你的技能，始终属于你", "Your skills. Your control.")}</h4>
               <p>
-                {t(
-                  "默认保存在浏览器。只有你主动调用模型时才发送内容。",
-                  "Stored in your browser. Content is sent only when you invoke a model.",
-                )}
+                {dk
+                  ? t(
+                      "技能库保存在这台电脑的本地文件里。只有你主动调用模型时才发送内容。",
+                      "Your library is stored in a local file on this computer. Content is sent only when you invoke a model.",
+                    )
+                  : t(
+                      "默认保存在浏览器。只有你主动调用模型时才发送内容。",
+                      "Stored in your browser. Content is sent only when you invoke a model.",
+                    )}
               </p>
               <button onClick={() => nav("about")}>
                 {t("了解本地优先", "About local-first")}
@@ -431,7 +740,50 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
               </button>
             </div>
           </header>
-          {view === "editor" && skill ? (
+          {view === "local" && dk ? (
+            <LocalView
+              lang={lang}
+              scan={scan}
+              contents={contents}
+              library={skills}
+              installs={installs}
+              refreshing={refreshing}
+              error={scanError}
+              onRefresh={() => void refreshScan()}
+              onAddRoot={() => void addRoot()}
+              onRemoveRoot={(id) => void removeRoot(id)}
+              onImport={importLocal}
+              onOpen={open}
+              onInstall={(request) => {
+                const item = scan?.items.find((i) => i.dir === request.source);
+                const key = item ? fileKey(mainPath(item)) : "";
+                const linked = skills.find(
+                  (s) => linkOf(s) && fileKey(linkOf(s)!.path) === key,
+                );
+                if (!linked || !item) return setInstallReq(request);
+                // 技能库里有改动：整目录复制，再用技能库版本覆盖 SKILL.md；否则原样复制
+                const edited = contentHash(linked) !== linkOf(linked)?.syncedHash;
+                setInstallReq({
+                  ...request,
+                  skillId: linked.id,
+                  ...(edited
+                    ? {
+                        files: {
+                          "SKILL.md": skillMarkdown(linked),
+                          "skill.json": JSON.stringify(linked, null, 2),
+                        },
+                      }
+                    : {}),
+                });
+              }}
+              onUninstall={(record) => void uninstallLocal(record)}
+              onWriteBack={(s) => void writeBack(s)}
+              onUseDisk={useDisk}
+              onKeepMine={keepMine}
+              onShow={show}
+              onOpenFile={openFile}
+            />
+          ) : view === "editor" && skill ? (
             <Editor
               key={skill.id}
               skill={skill}
@@ -563,12 +915,24 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
               </section>
               <section className="surface">
                 <h3>{t("数据与备份", "Data & backups")}</h3>
+                {dk ? (
+                  <>
+                    <p className="muted">
+                      {t(
+                        "技能库保存为本机文件，路径如下。清除浏览器数据不会影响它；建议仍定期导出备份。",
+                        "Your library is stored in a local file at the path below. Clearing browser data does not affect it; exporting backups regularly is still recommended.",
+                      )}
+                    </p>
+                    <code className="small mono sf-local-path">{env?.userData}</code>
+                  </>
+                ) : (
                 <p className="muted">
                   {t(
                     "使用本地存储适配层。清除浏览器数据会删除工作区；此版本不直接写入电脑文件夹。",
                     "Uses a browser storage adapter. Clearing browser data deletes your workspace. This version does not directly write to filesystem folders.",
                   )}
                 </p>
+                )}
                 <button
                   className="secondary"
                   onClick={() => {
@@ -644,10 +1008,15 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
                 <h3>{t("兼容性与边界", "Compatibility & limitations")}</h3>
                 <p>
                   Codex / Claude Code: SKILL.md{" "}
-                  {t(
-                    "目录导出，不自动安装或执行。",
-                    "directory exports, without automatic installation or execution.",
-                  )}
+                  {dk
+                    ? t(
+                        "目录导出；桌面版可在你确认后写入所选 Agent 的技能目录。",
+                        "directory exports; the desktop app writes into the agent folder you choose, after you confirm.",
+                      )
+                    : t(
+                        "目录导出，不自动安装或执行。",
+                        "directory exports, without automatic installation or execution.",
+                      )}
                 </p>
                 <p>
                   OpenAI Agents SDK / MCP: Experimental{" "}
@@ -658,10 +1027,18 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
                 </p>
                 <p>
                   {t(
-                    "已在浏览器内提供 Agent 运行时（应用内工具，按技能权限放行或确认）。桌面端、CLI、本地文件系统与 shell 执行仍在计划中。",
-                    "An in-browser agent runtime is available (in-app tools, allowed or confirmed by skill permissions). Desktop app, CLI, local filesystem and shell execution are still planned.",
+                    "已在浏览器内提供 Agent 运行时（应用内工具，按技能权限放行或确认）。CLI 与 shell 执行仍在计划中。",
+                    "An in-browser agent runtime is available (in-app tools, allowed or confirmed by skill permissions). CLI and shell execution are still planned.",
                   )}
                 </p>
+                {dk && (
+                  <p>
+                    {t(
+                      "这是桌面版：可以扫描本机各 Agent 的技能文件夹、安装与同步技能，目录变化会自动刷新。技能库保存为本机文件，安装或覆盖时旧文件移入回收站。",
+                      "This is the desktop app: it scans the skill folders of local agents, installs and syncs skills, and refreshes when folders change. The library is a local file; replaced files go to the Recycle Bin.",
+                    )}
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -763,6 +1140,31 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
                   README.md
                 </button>
               </div>
+              {dk && skill && (
+                <>
+                  <button
+                    className="secondary"
+                    data-act="install-skill"
+                    onClick={() =>
+                      setInstallReq({
+                        title: skill.displayName,
+                        name: skill.name,
+                        files: packageFor(skill),
+                        skillId: skill.id,
+                      })
+                    }
+                  >
+                    <HardDrive size={15} />
+                    {t("安装到本机 Agent…", "Install to a local agent…")}
+                  </button>
+                  <p className="small muted">
+                    {t(
+                      "写入所选 Agent 的技能文件夹（SKILL.md、skill.json 等）。",
+                      "Writes into the selected agent's skill folder (SKILL.md, skill.json, …).",
+                    )}
+                  </p>
+                </>
+              )}
               <pre className="package-tree">
                 SKILL.md
                 <br />
@@ -877,6 +1279,38 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
           )}
         </DialogContent>
       </Dialog>
+      {dk && (
+        <InstallDialog
+          lang={lang}
+          request={installReq}
+          scan={scan}
+          installs={installs}
+          run={(rootId, overwrite) => {
+            if (!dk || !installReq)
+              return Promise.reject(new Error("No installation in progress"));
+            return dk.install({
+              rootId,
+              name: installReq.name,
+              source: installReq.source,
+              files: installReq.files,
+              overwrite,
+              skillId: installReq.skillId,
+            });
+          }}
+          onClose={() => setInstallReq(null)}
+          onDone={() => {
+            const id = installReq?.skillId;
+            setInstallReq(null);
+            void loadInstalls().then(() => refreshScan());
+            if (id)
+              setSkills((all) =>
+                all.map((s) =>
+                  s.id === id ? { ...s, status: "Installed" } : s,
+                ),
+              );
+          }}
+        />
+      )}
       <Toaster
         richColors
         position="bottom-right"

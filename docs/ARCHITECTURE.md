@@ -37,4 +37,21 @@ Runtime tools are deliberately few and in-app only: attached material files, lib
 
 ZIP input uses fflate with pre-extraction limits, rejects absolute/traversal paths and never executes contents. Canonical JSON takes precedence over adjacent SKILL.md. Noncanonical Markdown headings stay in the instructions body. Supporting scripts/binaries are not installed.
 
+## Desktop app (`desktop/`)
+
+The desktop app does not run server-side rendering. The root Vite config builds the same `SkillForge` component as a single-page app (`desktop/vite.config.ts`, output in `desktop/dist`), which Electron serves from its own `app://` protocol. The web build is unchanged and the two coexist.
+
+| Area | Responsibility |
+| --- | --- |
+| `desktop/core/*.mjs` | Plain Node modules with no npm dependencies: path comparison, known agent folders, scanning, install planning and applying, folder watching, the settings store |
+| `desktop/electron/main.mjs` | Window, `app://` protocol, IPC handlers, validation of every call, Recycle Bin fallback, single instance |
+| `desktop/electron/preload.cjs` | The fixed list of asynchronous methods exposed to the page |
+| `src/features/local/bridge.ts` | Types, the `desktop` handle, `DesktopStorage` (implements `SkillStorage` over IPC), link record |
+| `src/features/local/convert.ts` | Pure functions: disk to Skill, content fingerprint, reconcile, adopt, keep-library |
+| `src/components/local.tsx` | The Local Skills view and the install dialog |
+
+Parsing `SKILL.md` stays in the page and reuses `parseSkill`. The main process only reads and writes files and checks paths. Each IPC call returns `{ok, data}` or `{ok: false, error}`.
+
+Sync is a pure function. `reconcile` compares a fingerprint of the `SKILL.md` fields with the last agreed fingerprint: a disk-only change is adopted, a change on both sides becomes a conflict, a removed file is marked missing. See [DESKTOP.md](DESKTOP.md) for the rules, the limits and what was verified.
+
 Future extension points: replace `SkillStorage` with IndexedDB/filesystem; add tested `SkillAdapter`s; move tool execution into a worker or sandbox with a real isolation design before adding shell, filesystem or package-installation tools.

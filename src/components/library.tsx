@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useState } from "react";
 import {
   Search,
@@ -18,6 +17,7 @@ import {
 import type { Skill, Language } from "../types/skill";
 import { scoreSkill } from "../features/inspector/engine";
 import { categories } from "../features/skills/registry";
+import { desktop } from "../features/local/bridge";
 import { words, Pick } from "./controls";
 export function Library({
   skills,
@@ -101,9 +101,9 @@ export function Library({
                 <Download size={16} />
                 {t("导入 Skill", "Import Skill")}
               </button>
-              <Link className="text-button" href="/demo">
+              <a className="text-button" href="/demo">
                 Explore Demo <ArrowUpRight size={14} />
-              </Link>
+              </a>
             </div>
           </div>
           <div className="intro-code">
@@ -158,10 +158,15 @@ export function Library({
                   "随项目分发的开放示例目录。欢迎通过 PR 贡献；不展示虚构热度。",
                   "A bundled open registry. Contribute by pull request; no invented popularity metrics.",
                 )
-              : t(
-                  "数据保存在当前浏览器中。请定期导出备份。",
-                  "Stored in this browser. Export regularly for backup.",
-                )}
+              : desktop
+                ? t(
+                    "技能库保存在这台电脑的应用数据目录，可在设置里查看位置。",
+                    "The library is stored in this computer's app data folder; see Settings for the location.",
+                  )
+                : t(
+                    "数据保存在当前浏览器中。请定期导出备份。",
+                    "Stored in this browser. Export regularly for backup.",
+                  )}
           </p>
         </div>
       )}

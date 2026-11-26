@@ -1,0 +1,370 @@
+/* SkillForge 桌面端：本机技能视图。沿用 globals.css 的主题变量。 */
+
+.sf-local-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.sf-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.sf-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8bc34a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #8bc34a 22%, transparent);
+}
+.sf-live.busy .sf-live-dot {
+  animation: sf-pulse 0.9s ease-in-out infinite alternate;
+}
+.sf-spin {
+  animation: sf-rot 0.9s linear infinite;
+}
+@keyframes sf-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sf-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sf-local-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--destructive) 55%, transparent);
+  background: color-mix(in srgb, var(--destructive) 10%, var(--card));
+  color: var(--foreground);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.sf-local-alert svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--destructive);
+}
+
+.sf-local-roots > .spread {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+.sf-local-roots h3 {
+  margin-bottom: 4px;
+}
+.sf-local-roots ul,
+.sf-local-problems ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.sf-local-roots li {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(0, 2fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.sf-local-root-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sf-local-state {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.sf-local-state.on {
+  color: var(--foreground);
+}
+.sf-local-state.bad {
+  border-color: var(--destructive);
+  color: var(--destructive);
+}
+.sf-local-root-actions {
+  display: flex;
+  align-items: center;
+}
+.sf-local-root-actions .icon-button {
+  padding: 5px;
+}
+.sf-local-root-actions .text-button {
+  font-size: 12px;
+  color: var(--destructive);
+}
+.sf-local-warn {
+  color: var(--destructive);
+  margin: 10px 0 0;
+}
+
+.sf-local-path {
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.sf-tab-n {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.sf-local-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  overflow: hidden;
+}
+.sf-local-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 18px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.sf-local-row:last-child {
+  border-bottom: 0;
+}
+.sf-local-row:hover {
+  background: color-mix(in srgb, var(--secondary) 55%, transparent);
+}
+.sf-local-main {
+  min-width: 0;
+}
+.sf-local-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sf-local-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.sf-local-origin {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.sf-local-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 6px;
+  color: var(--foreground);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sf-local-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sf-local-flags {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sf-local-flags:empty {
+  display: none;
+}
+.sf-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  border-radius: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+.sf-flag.ok {
+  color: var(--foreground);
+}
+.sf-flag.info {
+  border-color: color-mix(in srgb, #d9a400 60%, transparent);
+}
+.sf-flag.bad {
+  border-color: color-mix(in srgb, var(--destructive) 60%, transparent);
+  color: var(--destructive);
+}
+.sf-flag em {
+  font-style: normal;
+  color: #d9a400;
+}
+.sf-flag-x,
+.sf-flag-act button:first-child {
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  padding: 0 2px;
+  display: inline-flex;
+}
+.sf-flag-x:hover,
+.sf-flag-act button:hover {
+  color: var(--foreground);
+}
+.sf-flag-act {
+  display: inline-flex;
+  align-items: center;
+  color: var(--destructive);
+}
+.sf-local-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.sf-local-actions .small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.sf-local-actions .text-button.small {
+  font-size: 12px;
+  white-space: normal;
+  text-align: right;
+}
+
+.sf-local-problems {
+  margin-top: 18px;
+}
+.sf-local-problems > .text-button {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  padding: 0;
+}
+.sf-local-problems li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sf-local-problems li:last-child {
+  border-bottom: 0;
+}
+
+.sf-install-targets {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  max-height: 46vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+/* 选择器带上 .sf-install：要盖过 globals.css 里 .import-dialog label 的纵向排布 */
+.sf-install .sf-install-targets li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.sf-install-targets li:last-child {
+  border-bottom: 0;
+}
+.sf-install .sf-install-targets label {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  min-width: 0;
+  cursor: pointer;
+  color: var(--foreground);
+}
+.sf-install-targets input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 2px 0 0;
+  padding: 0;
+  flex: none;
+  accent-color: var(--primary);
+}
+.sf-install-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sf-install-name {
+  font-weight: 500;
+}
+.sf-install-text code {
+  overflow-wrap: anywhere;
+}
+.sf-install-targets li > .muted {
+  text-align: right;
+}
+.sf-install .actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 1100px) {
+  .sf-install .sf-install-targets li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .sf-install-targets li > .muted {
+    padding-left: 25px;
+    text-align: left;
+  }
+  .sf-local-roots li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .sf-local-roots li > .sf-local-path {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .sf-local-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sf-local-actions {
+    justify-content: flex-start;
+  }
+}

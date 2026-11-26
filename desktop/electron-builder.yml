@@ -1,0 +1,33 @@
+appId: com.skillforge.desktop
+productName: SkillForge
+copyright: Copyright © 2026 爱吃孜然芥末
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - electron/**/*
+  # 主进程直接 import 的核心模块（不经过打包器，必须一并带上）
+  - core/**/*
+  - package.json
+asar: true
+npmRebuild: false
+nodeGypRebuild: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: build/icon.png
+nsis:
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: SkillForge
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}

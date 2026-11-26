@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Desktop app** (Electron, Windows x64, in `desktop/`), not yet published on Releases. It scans the skill folders of Claude Code, Cursor, Codex, GitHub Copilot, OpenCode and Doubao on this computer (including the Doubao Agent workspace folders, when present), with an **Add folder** option for others.
+- **Local Skills** view: per-agent listing, search, folders without `SKILL.md`, and installation to any scanned folder after choosing the targets. Existing files are replaced only after confirmation and go to the Recycle Bin; other files are left alone.
+- Automatic refresh when a folder changes. A skill added from disk follows its file; a change on both sides is a conflict for the user to resolve; a removed file is marked missing and the library copy is kept.
+- The library is stored as a file in the app data folder on desktop (`DesktopStorage`), instead of `localStorage`.
+- 6 tests for the sync model (`tests/local.test.ts`) and 13 for the desktop core (`desktop/test/core.test.mjs`), both in `npm test`. A 28-check smoke run (`cd desktop && npm run smoke`) drives the real app in an isolated home folder, from source or against a packaged build; CI runs it on Windows.
+
+### Known limitations
+- Windows x64 only, and not code-signed: Windows SmartScreen warns on first run.
+- Gemini CLI, Windsurf, Kiro, Goose, Trae, Qoder, CodeBuddy and ZCode folders are not built in; add them manually.
+- The package version stays 0.2.0, so pushing these changes does not trigger a release.
+
 ## 0.2.0 — 2026-11-26
 
 ### Added

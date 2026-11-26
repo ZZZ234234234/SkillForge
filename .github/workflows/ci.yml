@@ -23,3 +23,24 @@ jobs:
       - run: npm run build
       - run: npm run test:integration
       - run: npm run check:docs
+  desktop:
+    # Electron 界面只能在有桌面的系统上跑：Windows 上构建界面并跑完整流程验证
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+        working-directory: .
+      - run: npm ci
+      - run: npm run build:ui
+      - run: npm run smoke

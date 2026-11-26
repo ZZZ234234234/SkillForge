@@ -1,0 +1,25 @@
+{
+  "name": "skillforge-desktop",
+  "productName": "SkillForge",
+  "version": "0.2.0",
+  "description": "SkillForge desktop app: scan, sync and install Agent Skills on this computer",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "license": "MIT",
+  "author": {
+    "name": "爱吃孜然芥末",
+    "email": "2014546082@qq.com"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "node scripts/dev.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "dist": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  }
+}

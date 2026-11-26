@@ -1,0 +1,5 @@
+/* 网页版的全部样式 + 桌面端“本机技能”视图的样式。
+   @source 指向仓库里的 React 源码，Tailwind 据此生成工具类。 */
+@import "../../app/globals.css";
+@import "./local.css";
+@source "../../src";

@@ -44,3 +44,10 @@ next-env.d.ts
 !.env.example
 *.tsbuildinfo
 /release/
+
+# desktop app (Electron)
+/desktop/node_modules
+/desktop/dist/
+/desktop/release/
+/desktop/smoke/
+/desktop/.dev-data/

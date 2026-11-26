@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- 与界面左上角的 brand-mark 一致：亮绿圆角方块 + 终端符号 -->
+  <rect width="512" height="512" rx="108" fill="#b8ed78" />
+  <path d="M126 150 L238 256 L126 362" fill="none" stroke="#18220e" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M276 362 H392" fill="none" stroke="#18220e" stroke-width="44" stroke-linecap="round" />
+</svg>

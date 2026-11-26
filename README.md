@@ -82,8 +82,21 @@ The screenshot above shows the actual deployed site. Public access, search, edit
 | Export | Full ZIP package, SKILL.md, skill.json, README.md; Codex/Claude/Generic directories |
 | Registry | Bundled open catalog, curated ordering, newest, categories, search; PR contribution format |
 | Settings | Chinese/English interface, dark/light mode, endpoint/model settings and memory-only API key |
+| Desktop app (unreleased) | Scans local agent skill folders, installs into them, auto-refresh on folder changes, library stored as a local file; Windows x64, not code-signed |
 
-“Installed” means installed into the **browser library**, not into an agent or the operating system. The agent features run inside the browser with a small set of in-app tools: no shell, no local filesystem, no package installation. Filesystem watching, desktop installation, a CLI and live community trending are **Coming Soon**. Skills authored in English remain English when the interface language changes.
+In the browser, “Installed” means installed into the **browser library**, not into an agent or the operating system. The agent features run inside the browser with a small set of in-app tools: no shell, no local filesystem, no package installation. Reading and writing the skill folders on your computer is available in the **desktop app** (see below); a CLI and live community trending are **Coming Soon**. Skills authored in English remain English when the interface language changes.
+
+### Desktop app (unreleased)
+
+An Electron app for Windows x64 that works on the skill folders of this computer: it scans the folders of Claude Code, Cursor, Codex, GitHub Copilot, OpenCode and Doubao, adds a skill from a folder to the library, installs a skill into any of those folders, and refreshes when a folder changes. Skills added from disk follow their file; if both the file and the library copy change, you choose which one to keep.
+
+Files that are replaced or uninstalled go to the Recycle Bin, and files that SkillForge did not write are never touched. The library is stored in the app data folder. The app is **not code-signed**, so Windows shows a SmartScreen warning on first run. It is built from source and not yet published on Releases.
+
+```bash
+cd desktop && npm install && npm run build:ui && npm start
+```
+
+See the [desktop guide](docs/DESKTOP.md) for the scanned folders, how files are written, the sync rules and what was verified.
 
 ### Agent runtime and permissions
 
@@ -174,7 +187,7 @@ MIT allows forks, modification and redistribution. Forks are welcome; they do no
 
 ### Local data and secrets
 
-Skills and test history remain in this browser by default. Storage is unencrypted and origin-specific. Clearing browser data deletes it; export backups. Data is sent only when you request GitHub import or model generation/evaluation, and when you start an Agent Run, an Agent Evaluation or a Steward chat. Those send the skill, your task or message, attached material files and tool results to your provider. `web_fetch` contacts the requested site directly from your browser after you approve it. Do not place keys, passwords, cookies, tokens or Authorization headers in public skills.
+Skills and test history remain in this browser by default. Storage is unencrypted and origin-specific. Clearing browser data deletes it; export backups. The desktop app keeps the same data in files under its app data folder instead ([desktop guide](docs/DESKTOP.md)). Data is sent only when you request GitHub import or model generation/evaluation, and when you start an Agent Run, an Agent Evaluation or a Steward chat. Those send the skill, your task or message, attached material files and tool results to your provider. `web_fetch` contacts the requested site directly from your browser after you approve it. Do not place keys, passwords, cookies, tokens or Authorization headers in public skills.
 
 Tool results, fetched pages and attached files are returned to the model as data. The system prompt tells the model to treat them as data rather than instructions, but prompt injection through fetched content is not fully preventable; review approvals and treat fetched text as untrusted.
 
@@ -192,8 +205,9 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CO
 - [x] v0.2: in-browser agent runtime with permission gating, Agent Run, Steward Agent and Agent Evaluation
 - [ ] v0.2: verified provider presets, richer semantic evaluations and editable assertion builder
 - [ ] v0.2: community registry submission validation and real, attributable popularity data
+- [x] desktop app (Electron, unreleased): scan local skill folders, install into them, refresh on change
 - [ ] v0.3: direct Codex/Claude integrations, MCP tools and CLI
-- [ ] v1.0: desktop app, plugin system, signed installers and registry ecosystem
+- [ ] v1.0: plugin system, signed installers and registry ecosystem
 
 ## Author
 
@@ -210,5 +224,7 @@ SkillForge 是一个本地优先的 AI Agent Skills 创建与管理工具。Skil
 默认简体中文、深色界面，无需注册。演示功能不需要密钥。真实 AI 生成需要自行配置模型服务，内容将发送给你选择的服务商。离线模板不是 AI 生成，规则评分也不是绝对质量标准。
 
 v0.2 新增两个入口：**Agent 试运行**选一个技能和任务，按技能的权限真实调用工具，每次调用和授权都记录在轨迹里；**管家 Agent**用对话检索、新建和修改技能库，改动前每次都要你确认。测试页新增 **Agent 评测**，对真实输出判定断言。Agent 只能使用浏览器内的少量工具，不能执行 shell，也不能改动你电脑上的文件。
+
+另有一个**桌面版**（Electron，Windows，尚未正式发布）：直接扫描这台电脑上 Claude Code、Cursor、Codex、GitHub Copilot、OpenCode、豆包的技能文件夹，可以把技能安装进去，文件夹有变化会自动刷新；被覆盖或卸载的文件进回收站，不是 SkillForge 写入的文件不会动。桌面版没有代码签名，首次运行会出现 Windows SmartScreen 提示。详见[桌面版说明](docs/DESKTOP.md)（英文）。
 
 作者：爱吃孜然芥末。邮箱：2014546082@qq.com。正式发行只认官方 GitHub Releases；源码 Fork 可以正常使用，但不代表作者官方发行。
