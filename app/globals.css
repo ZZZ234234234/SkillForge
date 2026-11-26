@@ -2053,3 +2053,265 @@ textarea::placeholder {
 .card-open h3 {
   overflow-wrap: anywhere;
 }
+
+/* ===== Agent runtime: run bench, trace and steward chat ===== */
+.runner-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 22px;
+  align-items: start;
+}
+.runner-input textarea {
+  width: 100%;
+  min-height: 120px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.file-chip button {
+  background: none;
+  border: 0;
+  color: var(--muted-foreground);
+  padding: 0;
+  display: flex;
+}
+.runner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.stop-button {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.run-error {
+  color: #ed9797;
+  font-size: 13px;
+  margin-top: 14px;
+}
+.binding-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.binding-table th,
+.binding-table td {
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.binding-table th {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  font-size: 11px;
+}
+.perm-badge,
+.step-decision,
+.step-status,
+.run-status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.perm-badge.read,
+.step-status.ok,
+.run-status.done {
+  color: var(--primary);
+}
+.perm-badge.network,
+.step-decision.confirmed,
+.run-status.running {
+  color: var(--blue);
+}
+.perm-badge.write,
+.step-decision.denied,
+.step-status.denied,
+.run-status.stopped {
+  color: var(--amber);
+}
+.step-decision.unavailable {
+  color: #ed9797;
+  border-style: dashed;
+}
+.step-status.error,
+.run-status.error {
+  color: #ed9797;
+}
+.step-decision.auto {
+  color: var(--muted-foreground);
+}
+.trace-step {
+  border-bottom: 1px solid var(--border);
+  padding: 9px 0;
+  font-size: 12px;
+}
+.trace-step summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.trace-step summary .tool-name {
+  font-family: var(--font-mono);
+}
+.trace-step summary .ms {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.trace-step pre,
+.run-output {
+  margin: 8px 0 0;
+  padding: 9px 11px;
+  border-radius: 4px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.trace-step pre {
+  max-height: 180px;
+  overflow: auto;
+}
+.run-output {
+  max-height: 460px;
+  overflow: auto;
+}
+.run-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+.run-summary strong {
+  color: var(--foreground);
+  font-family: var(--font-mono);
+}
+.artifacts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.confirm-dialog {
+  max-width: 560px !important;
+}
+.confirm-args {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 4px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+}
+.steward-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 170px);
+}
+.steward-page > .muted {
+  margin-bottom: 18px;
+}
+.steward-chat {
+  flex: 1;
+  min-height: 260px;
+  max-height: 56vh;
+  overflow: auto;
+  padding: 2px 2px 12px;
+}
+.chat-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.chat-empty .prompt-examples {
+  justify-content: center;
+  margin-bottom: 0;
+}
+.chat-turn {
+  margin-bottom: 14px;
+}
+.chat-user {
+  margin-left: auto;
+  max-width: 78%;
+  width: fit-content;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-assistant {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  padding: 12px 15px;
+  font-size: 14px;
+}
+.chat-assistant-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-assistant .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--primary);
+}
+.chat-composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--card);
+}
+.chat-composer textarea {
+  flex: 1;
+  margin: 0;
+  min-height: 56px;
+}
+.steward-page > .small {
+  margin: 10px 0 0;
+}
+@media (max-width: 1100px) {
+  .runner-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

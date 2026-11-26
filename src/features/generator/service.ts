@@ -1,9 +1,11 @@
 import type { ModelSettings, Skill } from "../../types/skill";
 import { blankSkill, skillSchema } from "../skills/schema";
 import { detectSecrets } from "../inspector/engine";
-export async function complete(
+/** 校验端点并发出一次 Chat Completions 请求；complete 与 Agent 运行时共用同一套边界 */
+export async function postChat(
   settings: ModelSettings,
-  messages: { role: string; content: string }[],
+  body: Record<string, unknown>,
+  signal?: AbortSignal,
 ) {
   const u = new URL(settings.endpoint);
   if (
@@ -14,7 +16,8 @@ export async function complete(
   if (u.username || u.password || u.search || u.hash)
     throw new Error("Endpoint must not contain credentials, query or fragment");
   if (!settings.model.trim()) throw new Error("Enter a model name");
-  if (detectSecrets(JSON.stringify(messages)).length)
+  const payload = JSON.stringify(body);
+  if (detectSecrets(payload).length)
     throw new Error("Potential Secret Detected — redact before sending");
   const r = await fetch(u.toString().replace(/\/$/, "") + "/chat/completions", {
     method: "POST",
@@ -24,8 +27,10 @@ export async function complete(
         ? { Authorization: `Bearer ${settings.apiKey}` }
         : {}),
     },
-    body: JSON.stringify({ model: settings.model, messages, temperature: 0.2 }),
-    signal: AbortSignal.timeout(60000),
+    body: payload,
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
+      : AbortSignal.timeout(60000),
     credentials: "omit",
     redirect: "error",
   });
@@ -33,10 +38,23 @@ export async function complete(
     throw new Error(
       `Model request failed (${r.status}). Check endpoint, CORS and model.`,
     );
-  const d = (await r.json()) as {
-    choices?: { message?: { content?: unknown } }[];
+  return (await r.json()) as {
+    choices?: {
+      message?: { content?: unknown; tool_calls?: unknown };
+      finish_reason?: unknown;
+    }[];
     usage?: { total_tokens?: unknown };
   };
+}
+export async function complete(
+  settings: ModelSettings,
+  messages: { role: string; content: string }[],
+) {
+  const d = await postChat(settings, {
+    model: settings.model,
+    messages,
+    temperature: 0.2,
+  });
   const content = d.choices?.[0]?.message?.content;
   if (typeof content !== "string") throw new Error("Model returned no text");
   return {

@@ -26,8 +26,9 @@ A prompt manager stores text. SkillForge connects that text to a typed schema, w
 
 | Build | Inspect | Iterate |
 | --- | --- | --- |
-| **Skill Builder** — forms and Markdown/JSON editing | **Skill Inspector** — actionable rules and secret detection | **Skill Tester** — rules, explicitly labeled mocks and optional LLM evaluation |
+| **Skill Builder** — forms and Markdown/JSON editing | **Skill Inspector** — actionable rules and secret detection | **Skill Tester** — rules, explicitly labeled mocks, optional LLM evaluation and real tool-calling runs |
 | **Skill Generator** — offline templates or your configured AI model | **Quality Score** — nine dimensions with visible evidence | **Cross-platform export** — Codex Skills, Claude Code Skills and generic Agent Skills |
+| **Agent Run** — execute one skill on a task and watch every tool call and approval | **Steward Agent** — search, read, create and update the library by conversation, with approval before each change | |
 
 The bundled registry contains **18 original Demo Skills**, including React Code Reviewer, Next.js Bug Hunter, GitHub Release Manager, SQL Reviewer, Academic Research Assistant and API Security Checker. No downloads, stars, installs or benchmarks are invented.
 
@@ -66,21 +67,32 @@ The screenshot above shows the actual deployed site. Public access, search, edit
 
 ## Features and boundaries
 
-| Feature | v0.1.x behavior |
+| Feature | v0.2.x behavior |
 | --- | --- |
 | Library | Search, categories, sorting, tags, favorites, local install state, copy, delete and export |
 | Editor | Form/Code modes, basic safe Markdown preview, valid-code autosave, undo/redo, code search, JSON/Markdown formatting |
 | Generator | Offline deterministic template mode; real Chat Completions-compatible request path; review, improve, simplify, strictness, tests, error handling and section regeneration |
 | Inspector | Goal/role completeness, output contracts, tools, broad permissions, constraints, examples, tests, duplicate text, verbosity, limited vagueness/conflict rules and platform metadata |
 | Quality | Clarity, Completeness, Tool Safety, Workflow, Error Handling, Testability, Portability, Maintainability, Documentation |
-| Tests | Rule Evaluation, Mock Evaluation, optional LLM response + model judge; timestamp, status, duration, model, available tokens, results and notes |
-| Comparison | Multiple skills, one shared suite, current-run results; token data shown only when returned; no tools execute |
+| Tests | Rule Evaluation, Mock Evaluation, optional LLM response + model judge, and Agent Evaluation (real tool calls); timestamp, status, duration, model, available tokens, real tool-call count, results and notes |
+| Agent Run | Runs one skill on a task with a 12-step tool loop, attached material files, a per-tool permission table and a live trace; write and network tools ask first |
+| Steward Agent | Library management by conversation (`search_skills`, `read_skill`, `create_skill`, `update_skill`); every create or update needs approval |
+| Comparison | Multiple skills, one shared suite, current-run results; token data shown only when returned; tools execute only in Agent Evaluation |
 | Import | Markdown, canonical JSON, folder and ZIP import; explicit public GitHub **file** URLs, subject to browser/network support |
 | Export | Full ZIP package, SKILL.md, skill.json, README.md; Codex/Claude/Generic directories |
 | Registry | Bundled open catalog, curated ordering, newest, categories, search; PR contribution format |
 | Settings | Chinese/English interface, dark/light mode, endpoint/model settings and memory-only API key |
 
-“Installed” means installed into the **browser library**, not into an agent or the operating system. Filesystem watching, desktop installation, real tool execution, an agent sandbox, a CLI and live community trending are **Coming Soon**. Skills authored in English remain English when the interface language changes.
+“Installed” means installed into the **browser library**, not into an agent or the operating system. The agent features run inside the browser with a small set of in-app tools: no shell, no local filesystem, no package installation. Filesystem watching, desktop installation, a CLI and live community trending are **Coming Soon**. Skills authored in English remain English when the interface language changes.
+
+### Agent runtime and permissions
+
+SkillForge now includes an **in-browser agent runtime**. It is a loop over your configured model: the model calls a tool, SkillForge decides whether the call may proceed, executes it, and returns the result to the model until the model gives a final answer or a limit is reached.
+
+- **The skill's `permissions` text decides what runs automatically.** Read-only declarations run without asking. Anything that reads as write or network asks for confirmation on every call. A declaration that cannot be classified is treated as write, and a broad declaration (wildcards, “unrestricted”, “sudo”, “全部权限”) is confirmed even when it binds to a read-only tool.
+- **Only tools the skill declares are bound.** A read-only declaration never binds to a write-capable tool. A declared tool with no in-browser equivalent (a shell, a database, an internal API) is shown as *not bound* and is never simulated; if the model still calls it, the trace records `unavailable`.
+- **Available tools:** `list_files`, `read_file`, `search_skills`, `read_skill` (read), `web_fetch` (network, subject to CORS, 15 s timeout, 12k characters), `save_artifact` (write, kept inside the run and downloadable, 200 KB max) and, for the Steward Agent only, `create_skill` and `update_skill` (write, schema-validated, id and status cannot be set by the model).
+- **Limits:** 12 model steps per run (10 for the Steward), up to 10 attached files of 2 MB each, a Stop button that aborts the request and refuses any approval still open, and a downloadable JSON record of every run.
 
 ### Honest evaluations
 
@@ -89,13 +101,16 @@ The screenshot above shows the actual deployed site. Public access, search, edit
 - **Rule Evaluation** checks the Skill's role, goals, instructions, workflow, tool definitions, constraints, input/output formats, error handling and nonempty sections. Test assertions and example text are excluded from text matching. It does not execute the test input or judge real task behavior.
 - **Mock Evaluation** replays an example and returns `skipped`, never an invented pass rate.
 - **LLM Evaluation** sends the skill and input to your configured provider, then asks a model to judge its response. No tools execute. The judge may be wrong. Network time is included. Tokens are `N/A` when not reported.
-- Comparison uses one selected suite for every selected skill. Rule timing is not an agent performance benchmark.
+- **Agent Evaluation** runs the skill as a real tool-calling agent (same runtime as Agent Run) and checks the `contains` / `notContains` / section assertions against the **real final output**. No model judge is used. It reports how many tool calls succeeded, were approved, were denied, were unavailable or failed. A run that stops is `error` and is not scored; a test without assertions is `skipped`. Tool calls are counted only when they succeeded. An example whose input equals the test input is left out of the prompt, because its output would be the expected answer.
+- Comparison uses one selected suite for every selected skill. Rule timing is not an agent performance benchmark, and a passing Agent Evaluation only shows that one run on one input produced the asserted text.
 
 ### AI setup
 
 Open Settings and enter a Chat Completions-compatible base URL, an actual model ID from the provider, and optionally a key. The application appends `/chat/completions`. It calls the provider directly from your browser, so the provider must allow CORS. HTTPS is required except for localhost. There is no server-side proxy.
 
 The key remains only in React memory, is not saved to browser storage, and is not exported. Refreshing clears it. Generator and tester clearly disclose when an action sends content and may incur provider charges. Real-provider calls were **not exercised with paid credentials** during initial verification; transport and validation were tested with an isolated mock.
+
+The agent features also need a model that returns OpenAI-style `tool_calls`. Provider support for tool calling varies; if the model never returns a tool call, the run ends with a plain answer and zero tool calls. The runtime was verified in a real desktop browser against a **scripted mock provider** (requests intercepted in the browser), not against a paid model, and `web_fetch` was verified with the same interception: real cross-origin behavior still depends on each site's CORS headers. See [browser verification](docs/BROWSER_QA.md).
 
 ## Skill package
 
@@ -122,7 +137,7 @@ my-skill/
 | OpenAI Agents SDK | Generic instruction bundle | **Experimental**, not an official SDK config |
 | MCP-based Agents | Generic instruction bundle | **Experimental**, not an MCP server or protocol implementation |
 
-MCP supplies tool connectivity; an Agent Skill supplies task instructions. SkillForge does not conflate the two. It is a Developer Tools project for Agentic AI workflows, not a hosted agent runtime.
+MCP supplies tool connectivity; an Agent Skill supplies task instructions. SkillForge does not conflate the two. It is a Developer Tools project for Agentic AI workflows with a small in-browser runtime for exercising skills, not a hosted agent service or a general-purpose agent framework.
 
 References: [Agent Skills specification](https://agentskills.io/specification), [Codex Skills](https://developers.openai.com/codex/skills), [Claude Code Skills](https://code.claude.com/docs/en/skills).
 
@@ -159,19 +174,22 @@ MIT allows forks, modification and redistribution. Forks are welcome; they do no
 
 ### Local data and secrets
 
-Skills and test history remain in this browser by default. Storage is unencrypted and origin-specific. Clearing browser data deletes it; export backups. Data is sent only when you request GitHub import or model generation/evaluation. Do not place keys, passwords, cookies, tokens or Authorization headers in public skills.
+Skills and test history remain in this browser by default. Storage is unencrypted and origin-specific. Clearing browser data deletes it; export backups. Data is sent only when you request GitHub import or model generation/evaluation, and when you start an Agent Run, an Agent Evaluation or a Steward chat. Those send the skill, your task or message, attached material files and tool results to your provider. `web_fetch` contacts the requested site directly from your browser after you approve it. Do not place keys, passwords, cookies, tokens or Authorization headers in public skills.
+
+Tool results, fetched pages and attached files are returned to the model as data. The system prompt tells the model to treat them as data rather than instructions, but prompt injection through fetched content is not fully preventable; review approvals and treat fetched text as untrusted.
 
 Secret detection is pattern-based, has false positives and false negatives, and does not replace review. Detected values block model transmission and individual Skill export until redacted. Imports are untrusted, never executed. ZIP path traversal and expansion limits are checked before extraction (5 MB compressed, 10 MB expanded, 100 entries, 2 MB per entry).
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and [release notes](docs/RELEASE-v0.1.1.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and release notes ([v0.2.0](docs/RELEASE-v0.2.0.md), [v0.1.1](docs/RELEASE-v0.1.1.md)).
 
 ## Roadmap
 
 - [x] v0.1: library, editor, inspector, scoring, demo, import/export
 - [x] v0.1: offline generator, configurable AI request path, rule/mock test bench and shared-suite comparison
 - [x] v0.1: bundled registry and contribution format
+- [x] v0.2: in-browser agent runtime with permission gating, Agent Run, Steward Agent and Agent Evaluation
 - [ ] v0.2: verified provider presets, richer semantic evaluations and editable assertion builder
 - [ ] v0.2: community registry submission validation and real, attributable popularity data
 - [ ] v0.3: direct Codex/Claude integrations, MCP tools and CLI
@@ -190,5 +208,7 @@ If SkillForge helps you build better AI agents, consider giving it a ⭐.
 SkillForge 是一个本地优先的 AI Agent Skills 创建与管理工具。Skill 可以理解为“教 AI 专业完成一种任务的可复用工作说明书”。你可以用表单编辑它、检查结构和权限、运行规则测试、比较多个版本，再导出为可阅读的 Markdown 文档和程序可解析的 JSON 数据。
 
 默认简体中文、深色界面，无需注册。演示功能不需要密钥。真实 AI 生成需要自行配置模型服务，内容将发送给你选择的服务商。离线模板不是 AI 生成，规则评分也不是绝对质量标准。
+
+v0.2 新增两个入口：**Agent 试运行**选一个技能和任务，按技能的权限真实调用工具，每次调用和授权都记录在轨迹里；**管家 Agent**用对话检索、新建和修改技能库，改动前每次都要你确认。测试页新增 **Agent 评测**，对真实输出判定断言。Agent 只能使用浏览器内的少量工具，不能执行 shell，也不能改动你电脑上的文件。
 
 作者：爱吃孜然芥末。邮箱：2014546082@qq.com。正式发行只认官方 GitHub Releases；源码 Fork 可以正常使用，但不代表作者官方发行。

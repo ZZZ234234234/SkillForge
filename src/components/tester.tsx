@@ -21,6 +21,7 @@ import type {
 } from "../types/skill";
 import { runTest, compareSkills } from "../features/tester/runner";
 import { Pick, words, download } from "./controls";
+import { useConfirm } from "./confirm";
 export function Tester({
   lang,
   skills,
@@ -37,6 +38,7 @@ export function Tester({
   onChange: (s: Skill) => void;
 }) {
   const t = words(lang),
+    { confirm, dialog } = useConfirm(lang),
     [ids, setIds] = useState<string[]>(skills.slice(0, 2).map((s) => s.id)),
     [source, setSource] = useState(skills[0]?.id ?? ""),
     [mode, setMode] = useState<TestMode>("rule"),
@@ -60,7 +62,10 @@ export function Tester({
     const current: TestResult[] = [];
     for (const sk of selected)
       for (const test of s.tests) {
-        const r = await runTest(sk, test, mode, settings);
+        const r = await runTest(sk, test, mode, settings, {
+          confirm,
+          skills,
+        });
         current.push(r);
         setBatch([...current]);
       }
@@ -164,6 +169,13 @@ export function Tester({
                 { value: "rule", label: "Rule Evaluation" },
                 { value: "mock", label: "Mock Evaluation" },
                 { value: "llm", label: "LLM Evaluation" },
+                {
+                  value: "agent",
+                  label: t(
+                    "Agent 评测 · 真实工具调用",
+                    "Agent Evaluation · real tool calls",
+                  ),
+                },
               ]}
             />
           </label>
@@ -185,10 +197,15 @@ export function Tester({
                   "模拟模式：回放第一个示例，状态为 skipped；不计算通过率。",
                   "Mock mode replays the first example, marks it skipped and provides no pass rate.",
                 )
-              : t(
-                  "模型模式：会向设置中的接口发送 Skill 与测试输入，并调用模型评审结果，可能产生费用。无工具执行；模型评审可能出错。",
-                  "LLM mode sends the skill and test inputs to your provider and uses a model judge. May incur costs. No tools are executed; the judge can be wrong.",
-                )}
+              : mode === "agent"
+                ? t(
+                    "Agent 模式：技能作为系统提示，按工作流真实调用工具并记录轨迹，再对真实输出判定断言（不使用模型评审）。只读工具自动放行，写入与联网工具每次都会先问你。会向设置中的接口发送技能、输入与工具结果，可能产生费用；模型与工具都可能出错。",
+                    "Agent mode runs the skill as a real tool-calling agent, records the trace, and checks assertions against the real output (no model judge). Read-only tools run automatically; write and network tools ask first. Sends the skill, input and tool results to your provider; may incur costs. Models and tools can fail.",
+                  )
+                : t(
+                    "模型模式：会向设置中的接口发送 Skill 与测试输入，并调用模型评审结果，可能产生费用。无工具执行；模型评审可能出错。",
+                    "LLM mode sends the skill and test inputs to your provider and uses a model judge. May incur costs. No tools are executed; the judge can be wrong.",
+                  )}
         </p>
       </div>
       <div className="surface comparison">
@@ -222,7 +239,7 @@ export function Tester({
                 </TableCell>
                 <TableCell>{r.tokens ?? "N/A"}</TableCell>
                 <TableCell>{batch.length ? `${r.duration} ms` : "—"}</TableCell>
-                <TableCell>0</TableCell>
+                <TableCell>{batch.length ? r.toolCalls : "—"}</TableCell>
                 <TableCell>{r.length.toLocaleString()}</TableCell>
                 <TableCell>{r.errors}</TableCell>
                 <TableCell>{r.quality}</TableCell>
@@ -311,6 +328,11 @@ export function Tester({
             <summary>
               <span className={"result-status " + r.status}>{r.status}</span>
               {skills.find((s) => s.id === r.skillId)?.displayName}
+              {r.toolCalls > 0 && (
+                <span className="badge">
+                  {r.toolCalls} {t("次工具调用", "tool calls")}
+                </span>
+              )}
               <span className="mono">{r.duration} ms</span>
             </summary>
             <p className="small muted">
@@ -329,6 +351,7 @@ export function Tester({
           </p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

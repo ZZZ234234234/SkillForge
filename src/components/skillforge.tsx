@@ -21,6 +21,8 @@ import {
   Lock,
   Terminal,
   PanelLeft,
+  Bot,
+  Play,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -47,6 +49,8 @@ import { Editor } from "./editor";
 import { Inspector } from "./inspector";
 import { Generator } from "./generator";
 import { Tester } from "./tester";
+import { Runner } from "./runner";
+import { Steward } from "./steward";
 import { Pick, words, download } from "./controls";
 import { registrySkills } from "../features/skills/registry";
 import { blankSkill, skillSchema } from "../features/skills/schema";
@@ -185,8 +189,11 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
     setSelected(s.id);
     setView("editor");
   };
-  const add = (s: Skill) => {
+  /** 只加入技能库、不切换页面：管家 Agent 新建技能时用，避免把对话页面顶掉 */
+  const addQuietly = (s: Skill) =>
     setSkills((all) => [s, ...all.filter((x) => x.id !== s.id)]);
+  const add = (s: Skill) => {
+    addQuietly(s);
     open(s);
   };
   const create = () => add(blankSkill());
@@ -275,6 +282,8 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
     { id: "mine", icon: FolderCode, zh: "我的技能", en: "My Skills" },
     { id: "generator", icon: WandSparkles, zh: "生成器", en: "Generator" },
     { id: "tester", icon: FlaskConical, zh: "测试与比较", en: "Tester" },
+    { id: "runner", icon: Play, zh: "Agent 试运行", en: "Agent Run" },
+    { id: "steward", icon: Bot, zh: "管家 Agent", en: "Steward" },
     { id: "registry", icon: Globe, zh: "开放目录", en: "Registry" },
   ];
   return (
@@ -318,6 +327,11 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
                     )}
                     {n.id === "generator" && (
                       <span className="new-pill">AI</span>
+                    )}
+                    {(n.id === "runner" || n.id === "steward") && (
+                      <span className="new-pill">
+                        {n.id === "runner" ? "NEW" : "AI"}
+                      </span>
                     )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -450,6 +464,17 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
               results={results}
               onResults={setResults}
               onChange={change}
+            />
+          ) : view === "runner" ? (
+            <Runner lang={lang} skills={skills} settings={settings} />
+          ) : view === "steward" ? (
+            <Steward
+              lang={lang}
+              skills={skills}
+              settings={settings}
+              onAdd={addQuietly}
+              onChange={change}
+              onOpen={open}
             />
           ) : view === "settings" ? (
             <div className="tool-page settings-page">
@@ -633,8 +658,8 @@ export default function SkillForge({ demo = false }: { demo?: boolean }) {
                 </p>
                 <p>
                   {t(
-                    "Coming Soon：真实 Agent 沙箱、桌面端、CLI、社区热度排行。",
-                    "Coming Soon: real agent sandbox, desktop app, CLI, community trending metrics.",
+                    "已在浏览器内提供 Agent 运行时（应用内工具，按技能权限放行或确认）。桌面端、CLI、本地文件系统与 shell 执行仍在计划中。",
+                    "An in-browser agent runtime is available (in-app tools, allowed or confirmed by skill permissions). Desktop app, CLI, local filesystem and shell execution are still planned.",
                   )}
                 </p>
               </div>

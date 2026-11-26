@@ -36,7 +36,8 @@ export interface Skill {
   favorite: boolean;
 }
 export type Language = "zh" | "en";
-export type TestMode = "rule" | "mock" | "llm";
+/** agent = 真实工具调用评测：按技能执行任务，再对真实输出判定断言 */
+export type TestMode = "rule" | "mock" | "llm" | "agent";
 export interface TestResult {
   id: string;
   skillId: string;

@@ -5,14 +5,24 @@ import type {
   TestResult,
   ModelSettings,
 } from "../../types/skill";
+import type { ConfirmFn } from "../../types/agent";
 import { skillMarkdown } from "../skills/parser";
 import { scoreSkill } from "../inspector/engine";
 import { complete } from "../generator/service";
+import { runSkill } from "../agent/runtime";
+export interface RunTestOptions {
+  /** agent 模式：写入 / 联网工具的确认回调；不传则一律拒绝 */
+  confirm?: ConfirmFn;
+  /** agent 模式：可检索的技能库 */
+  skills?: Skill[];
+  signal?: AbortSignal;
+}
 export async function runTest(
   skill: Skill,
   test: SkillTest,
   mode: TestMode,
   settings?: ModelSettings,
+  opts: RunTestOptions = {},
 ): Promise<TestResult> {
   const start = performance.now();
   const r: TestResult = {
@@ -69,6 +79,54 @@ export async function runTest(
       r.result = JSON.stringify(results, null, 2);
       r.notes =
         "Rule Evaluation checks skill text and sections. Input and expected behavior are descriptive; no agent task is executed.";
+    } else if (mode === "agent") {
+      if (!settings) throw new Error("Configure a model first");
+      // 真实执行：技能作为系统提示，工具按声明的权限放行或确认，然后对真实输出判定断言
+      const run = await runSkill({
+        skill,
+        input: test.input,
+        skills: opts.skills ?? [skill],
+        settings,
+        confirm: opts.confirm,
+        signal: opts.signal,
+      });
+      const trace = run.trace;
+      r.result = trace.output;
+      r.model = settings.model;
+      r.tokens = trace.tokens;
+      r.toolCalls = trace.steps.filter((s) => s.status === "ok").length;
+      const counts = {
+        confirmed: trace.steps.filter((s) => s.decision === "confirmed").length,
+        denied: trace.steps.filter((s) => s.decision === "denied").length,
+        unavailable: trace.steps.filter((s) => s.decision === "unavailable")
+          .length,
+        failed: trace.steps.filter((s) => s.status === "error").length,
+      };
+      const summary = `Agent Evaluation: ${r.toolCalls} real tool call(s) (${counts.confirmed} approved, ${counts.denied} denied, ${counts.unavailable} unavailable in this run, ${counts.failed} failed). The model judge is not used; assertions check the real output.`;
+      if (trace.status === "error") throw new Error(trace.reason);
+      if (trace.status === "stopped") {
+        r.status = "error";
+        r.result = trace.output;
+        r.notes = `${summary} Run stopped (${trace.reason}); not scored.`;
+      } else if (!test.assertions.length) {
+        r.status = "skipped";
+        r.notes = `${summary} No assertions, so no pass/fail verdict.`;
+      } else {
+        const text = trace.output.toLowerCase();
+        const results = test.assertions.map((a) => ({
+          assertion: a,
+          pass:
+            a.kind === "contains"
+              ? text.includes(a.value.toLowerCase())
+              : a.kind === "notContains"
+                ? !text.includes(a.value.toLowerCase())
+                : Object.hasOwn(skill, a.value) &&
+                  Boolean(skill[a.value as keyof Skill]?.toString().trim()),
+        }));
+        r.status = results.every((x) => x.pass) ? "pass" : "fail";
+        r.notes = summary;
+        r.result = `${trace.output}\n\n--- assertions ---\n${JSON.stringify(results, null, 2)}`;
+      }
     } else {
       if (!settings) throw new Error("Configure a model first");
       const response = await complete(settings, [
