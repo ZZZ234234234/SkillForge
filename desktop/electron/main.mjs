@@ -13,8 +13,14 @@ import crypto from "node:crypto";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { builtinRoots } from "../core/agents.mjs";
+import { discoverRoots } from "../core/discover.mjs";
 import { scan, readLocalFiles } from "../core/scan.mjs";
-import { planInstall, applyInstall, removeInstall } from "../core/install.mjs";
+import {
+  planInstall,
+  applyInstall,
+  removeInstall,
+  pruneEmptyDirs,
+} from "../core/install.mjs";
 import { watchPaths } from "../core/watch.mjs";
 import { openStore } from "../core/store.mjs";
 import { containsPath, samePath } from "../core/paths.mjs";
@@ -76,8 +82,8 @@ let scanning = null;
 const home = () => (homeOverride ? path.resolve(homeOverride) : app.getPath("home"));
 const fsp = fs.promises;
 
-function allRoots() {
-  const custom = store
+function customRoots() {
+  return store
     .get()
     .customRoots.map((r) => ({
       id: r.id,
@@ -89,7 +95,24 @@ function allRoots() {
       path: r.path,
       builtin: false,
     }));
-  return [...builtinRoots(home(), process.env), ...custom];
+}
+
+/** 自动发现的目录：每次扫描前重新找一遍，其余调用沿用最近一次的结果。 */
+let foundRoots = [];
+
+function allRoots() {
+  return [...builtinRoots(home(), process.env), ...foundRoots, ...customRoots()];
+}
+
+async function refreshFound() {
+  try {
+    foundRoots = await discoverRoots(home(), [
+      ...builtinRoots(home(), process.env),
+      ...customRoots(),
+    ]);
+  } catch {
+    // 找不到就沿用上一次的结果，不影响扫描
+  }
 }
 
 function insideAnyRoot(p) {
@@ -104,6 +127,7 @@ function insideAnyRoot(p) {
 function runScan() {
   if (scanning) return scanning;
   scanning = (async () => {
+    await refreshFound();
     const roots = allRoots();
     const meta = Object.fromEntries(roots.map((r) => [r.id, r]));
     const result = await scan(roots);
@@ -217,6 +241,9 @@ function registerIpc() {
       throw new Error("文件列表格式不正确");
     const root = allRoots().find((r) => r.id === rootId);
     if (!root) throw new Error("未知的安装目录");
+    // 安装前这个 Agent 的技能目录还不存在：记下来，卸载时把顺带创建的空目录也清掉。
+    // 按目录记而不是按安装记录记：同一个目录里先装 A 再装 B，卸载 B 时也要能判断。
+    if (!fs.existsSync(root.path)) store.get().createdRoots[root.path] = true;
     const plan = await planInstall({
       rootPath: root.path,
       name,
@@ -254,6 +281,15 @@ function registerIpc() {
     const record = store.get().installs[dir];
     if (!record) throw new Error("没有这次安装的记录");
     const r = await removeInstall(record, { remove: moveToTrash });
+    // 这个技能目录是 SkillForge 顺带创建的，并且现在已经空了：把整串空目录清掉。
+    // 里面还有用户自己的文件（技能目录还在）时不动。
+    if (!(await fsp.stat(record.dir).catch(() => null))) {
+      const made = store.get().createdRoots;
+      for (const p of Object.keys(made).filter((k) => containsPath(k, record.dir))) {
+        await pruneEmptyDirs(path.dirname(record.dir), home());
+        if (!fs.existsSync(p)) delete made[p];
+      }
+    }
     delete store.get().installs[dir];
     store.save();
     setTimeout(() => void runScan().catch(() => {}), 150);

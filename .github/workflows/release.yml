@@ -11,6 +11,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     permissions:
       contents: write
       id-token: write
@@ -58,3 +60,54 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: gh release create "$RELEASE_TAG" release/*.zip release/SHA256SUMS.txt --target "$GITHUB_SHA" --title "SkillForge $RELEASE_TAG" --notes-file "docs/RELEASE-$RELEASE_TAG.md"
+
+  # Windows 桌面版：构建、对打包后的程序跑一遍冒烟、做证明，再挂到同一个 Release 上。
+  # Release 已存在时（重跑）也执行，上传会覆盖同名文件。
+  desktop:
+    needs: release
+    if: needs.release.result == 'success'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: desktop
+      - name: Build the desktop interface
+        run: npm run build:ui
+        working-directory: desktop
+      - name: Package the installer and the portable program
+        run: npm run dist
+        working-directory: desktop
+      - name: Verify the packaged program
+        working-directory: desktop
+        env:
+          SKILLFORGE_EXE: release/win-unpacked/SkillForge.exe
+        run: npm run smoke
+      - name: Attest the desktop programs
+        uses: actions/attest@v4
+        with:
+          subject-path: desktop/release/SkillForge-*.exe
+      - name: Attach the desktop programs to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          v="$(node -p "require('./desktop/package.json').version")"
+          test "v$v" = "$RELEASE_TAG" || { echo "tag $RELEASE_TAG does not match desktop version $v"; exit 1; }
+          cd desktop/release
+          sha256sum "SkillForge-Setup-$v-x64.exe" "SkillForge-$v-x64-portable.exe" > SHA256SUMS-desktop.txt
+          cat SHA256SUMS-desktop.txt
+          gh release upload "$RELEASE_TAG" "SkillForge-Setup-$v-x64.exe" "SkillForge-$v-x64-portable.exe" SHA256SUMS-desktop.txt --clobber

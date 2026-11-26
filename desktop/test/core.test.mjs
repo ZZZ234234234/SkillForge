@@ -5,11 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import { containsPath, isInside, samePath } from "../core/paths.mjs";
 import { builtinRoots } from "../core/agents.mjs";
+import { discoverRoots } from "../core/discover.mjs";
 import { scan, readLocalFiles } from "../core/scan.mjs";
 import {
   planInstall,
   applyInstall,
   removeInstall,
+  pruneEmptyDirs,
   validRel,
 } from "../core/install.mjs";
 import { openStore } from "../core/store.mjs";
@@ -49,6 +51,96 @@ test("agents: builtin roots follow the documented folders", () => {
   assert.deepEqual(roots.find((r) => r.id === "claude").reserved, ["synced", "anthropic-skills"]);
   // 豆包 Agent 工作区的目录只在存在时才列出
   assert.equal(roots.some((r) => r.id.startsWith("doubao-")), false);
+});
+
+test("agents: every additional agent folder matches its documentation and has a source", () => {
+  const home = path.resolve(os.tmpdir(), "home-agents-more");
+  const by = Object.fromEntries(
+    builtinRoots(home, {}).map((r) => [r.id, r]),
+  );
+  const documented = {
+    gemini: ".gemini/skills",
+    antigravity: ".gemini/config/skills",
+    windsurf: ".codeium/windsurf/skills",
+    kiro: ".kiro/skills",
+    trae: ".trae/skills",
+    "trae-cli": ".traecli/skills",
+    qoder: ".qoder/skills",
+    qoderwork: ".qoderwork/skills",
+    codebuddy: ".codebuddy/skills",
+    zcode: ".zcode/skills",
+    kimi: ".config/agents/skills",
+    amp: ".config/amp/skills",
+    iflow: ".iflow/skills",
+    qwen: ".qwen/skills",
+    cline: ".cline/skills",
+    roo: ".roo/skills",
+    openhands: ".openhands/skills",
+    devin: ".config/devin/skills",
+  };
+  for (const [id, dir] of Object.entries(documented)) {
+    assert.equal(by[id]?.path, path.join(home, ...dir.split("/")), id);
+    assert.match(by[id].doc, /^https:\/\/\S+\.\w+/, id + " has a documentation link");
+  }
+  // ~/.agents/skills 是跨 Agent 的通用目录：读它的 Agent 都列在 readers 里
+  const readers = by.codex.readers;
+  for (const name of ["GitHub Copilot", "Gemini CLI", "Windsurf", "Goose", "ZCode", "Qwen Code"])
+    assert.ok(readers.includes(name), name + " reads ~/.agents/skills");
+  assert.equal(new Set(readers).size, readers.length);
+  // id 与路径都不能重复
+  const ids = Object.values(by).map((r) => r.id);
+  const paths = Object.values(by).map((r) => r.path);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(new Set(paths).size, paths.length);
+});
+
+test("discover: finds unknown skills folders, skips known and unrelated ones", async () => {
+  const home = tmp();
+  skill(path.join(home, ".someagent", "skills", "helper"));
+  skill(path.join(home, ".config", "newtool", "skills", "one"));
+  // 分了组的目录（<组>/<技能>/SKILL.md）因为第一眼看不到 SKILL.md，不靠自动发现，用“添加文件夹”
+  skill(path.join(home, ".grouped", "skills", "team", "grouped-one"));
+  // 只有 skill.json 的也算
+  write(path.join(home, ".jsononly", "skills", "a", "skill.json"), "{}");
+  // 下面这些都不该被发现
+  fs.mkdirSync(path.join(home, ".empty", "skills"), { recursive: true }); // 里面没有技能
+  skill(path.join(home, "toodeep", "a", "b", "skills", "x")); // 超过两层
+  skill(path.join(home, "node_modules", "pkg", "skills", "x")); // 跳过的目录
+  skill(path.join(home, ".claude", "skills", "builtin-one")); // 已是内置目录
+  skill(path.join(home, "notes", "SKILL.md")); // 不是 skills 目录
+
+  const known = builtinRoots(home, {});
+  const found = await discoverRoots(home, known);
+  const rels = found
+    .map((r) => path.relative(home, r.path).split(path.sep).join("/"))
+    .sort();
+  assert.deepEqual(rels, [".config/newtool/skills", ".jsononly/skills", ".someagent/skills"]);
+  const some = found.find((r) => r.label === "someagent");
+  assert.equal(some.found, true);
+  assert.equal(some.builtin, true);
+  assert.deepEqual(some.readers, []);
+  assert.match(some.id, /^found-[0-9a-f]{8}$/);
+  // 两层目录的名字用完整相对路径，不只剩最后一段
+  assert.equal(found.find((r) => r.path.endsWith("newtool" + path.sep + "skills")).label, "config/newtool");
+  // 同一路径再次发现，id 不变
+  assert.equal((await discoverRoots(home, known)).find((r) => r.label === "someagent").id, some.id);
+  // 发现到的目录能直接参与扫描
+  const res = await scan([...known, ...found]);
+  assert.deepEqual(
+    res.items.filter((i) => i.rootId.startsWith("found-")).map((i) => i.dirName).sort(),
+    ["a", "helper", "one"],
+  );
+});
+
+test("discover: a custom folder on the same path is not listed twice", async () => {
+  const home = tmp();
+  skill(path.join(home, ".mine", "skills", "x"));
+  const custom = { id: "custom:1", path: path.join(home, ".mine", "skills") };
+  assert.deepEqual(await discoverRoots(home, [...builtinRoots(home, {}), custom]), []);
+  // 与自定义目录只是部分重叠（自定义目录是其中一个技能）时也不重复
+  const inner = { id: "custom:2", path: path.join(home, ".mine", "skills", "x") };
+  assert.deepEqual(await discoverRoots(home, [inner]), []);
+  assert.equal(home && (await discoverRoots("", [])).length, 0);
 });
 
 test("agents: Doubao workspace roots appear only when the folder exists", async () => {
@@ -212,6 +304,36 @@ test("uninstall: removes recorded files only", async () => {
   assert.equal(fs.existsSync(again.dir), false);
 });
 
+test("uninstall: folders created on install are pruned, existing ones are kept", async () => {
+  const home = tmp();
+  // Agent 的目录本来不存在：安装时逐级创建，卸载后一并清掉
+  const fresh = path.join(home, ".newagent", "skills");
+  const plan = await planInstall({ rootPath: fresh, name: "one", files: { "SKILL.md": "---\nname: one\n---\n" } });
+  const r = await applyInstall(plan);
+  assert.equal(fs.existsSync(path.join(home, ".newagent")), true);
+  await removeInstall({ dir: r.dir, files: r.files });
+  assert.equal(await pruneEmptyDirs(path.dirname(r.dir), home), 2); // skills 与 .newagent
+  assert.equal(fs.existsSync(path.join(home, ".newagent")), false);
+  // 目录本来就存在：里面的其他内容保持原样，空目录链只删到第一个非空目录为止
+  const kept = path.join(home, ".agents", "skills", "mine");
+  skill(kept);
+  const p2 = await planInstall({
+    rootPath: path.join(home, ".agents", "skills"),
+    name: "two",
+    files: { "SKILL.md": "---\nname: two\n---\n", "refs/a.md": "a" },
+  });
+  const r2 = await applyInstall(p2);
+  await removeInstall({ dir: r2.dir, files: r2.files });
+  assert.equal(await pruneEmptyDirs(path.dirname(r2.dir), home), 0);
+  assert.equal(fs.existsSync(path.join(kept, "SKILL.md")), true);
+  // 不会越过 stop 往上删
+  const deep = path.join(home, "x", "y");
+  fs.mkdirSync(deep, { recursive: true });
+  assert.equal(await pruneEmptyDirs(deep, path.join(home, "x")), 1);
+  assert.equal(fs.existsSync(path.join(home, "x", "y")), false);
+  assert.equal(fs.existsSync(home), true);
+});
+
 test("store: persists documents and survives a corrupt file", () => {
   const dir = tmp();
   const file = path.join(dir, "settings.json");
@@ -227,6 +349,24 @@ test("store: persists documents and survives a corrupt file", () => {
   fs.writeFileSync(file, "{not json");
   assert.deepEqual(openStore(file).get().customRoots, []);
   assert.equal(openStore(file).readDoc("nope.json"), null);
+});
+
+test("store: keeps only real entries of folders created on install", () => {
+  const file = path.join(tmp(), "settings.json");
+  fs.writeFileSync(
+    file,
+    JSON.stringify({
+      customRoots: [],
+      installs: {},
+      createdRoots: { [path.join("relative", "skills")]: true, [path.resolve(os.tmpdir(), "made", "skills")]: true, bad: "yes" },
+    }),
+  );
+  const st = openStore(file);
+  assert.deepEqual(Object.keys(st.get().createdRoots), [path.resolve(os.tmpdir(), "made", "skills")]);
+  st.get().createdRoots[path.resolve(os.tmpdir(), "made2")] = true;
+  st.save();
+  st.reload();
+  assert.equal(Object.keys(st.get().createdRoots).length, 2);
 });
 
 test("watch: reports changes and picks up folders created later", async () => {

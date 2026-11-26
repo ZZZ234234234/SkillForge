@@ -1,18 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-11-26
 
 ### Added
-- **Desktop app** (Electron, Windows x64, in `desktop/`), not yet published on Releases. It scans the skill folders of Claude Code, Cursor, Codex, GitHub Copilot, OpenCode and Doubao on this computer (including the Doubao Agent workspace folders, when present), with an **Add folder** option for others.
+- **Desktop app** (Electron, Windows x64, in `desktop/`). It scans the skill folders of the agents on this computer, installs skills into them and refreshes when those folders change. Published on Releases as an installer and a portable program.
+- **27 built-in agent folders**, each taken from the agent's documentation: Claude Code, Cursor, Codex (both folders), GitHub Copilot, OpenCode, Doubao (three folders), Gemini CLI, Antigravity, Windsurf, Kiro, Trae, Trae CLI, Qoder CLI, QoderWork, CodeBuddy Code, ZCode, Kimi Code CLI, Amp, iFlow CLI, Qwen Code, Cline, Roo Code, OpenHands and Devin. `~/.agents/skills` is shown with the eleven other agents that read it.
+- **Automatic discovery.** Skill folders of agents that are not in that list are found by their shape (`<folder>/skills/<name>/SKILL.md`, one or two levels below the home folder) before each scan and marked *found automatically*. On the development machine this found the folders of Qoder CN, WorkBuddy and OpenClaw in about 0.15 s.
 - **Local Skills** view: per-agent listing, search, folders without `SKILL.md`, and installation to any scanned folder after choosing the targets. Existing files are replaced only after confirmation and go to the Recycle Bin; other files are left alone.
+- Built-in folders of agents that are not installed are folded into one line; the install dialog lists the folders on this computer first.
 - Automatic refresh when a folder changes. A skill added from disk follows its file; a change on both sides is a conflict for the user to resolve; a removed file is marked missing and the library copy is kept.
 - The library is stored as a file in the app data folder on desktop (`DesktopStorage`), instead of `localStorage`.
-- 6 tests for the sync model (`tests/local.test.ts`) and 13 for the desktop core (`desktop/test/core.test.mjs`), both in `npm test`. A 28-check smoke run (`cd desktop && npm run smoke`) drives the real app in an isolated home folder, from source or against a packaged build; CI runs it on Windows.
+- 6 tests for the sync model (`tests/local.test.ts`) and 18 for the desktop core (`desktop/test/core.test.mjs`), both in `npm test`. A 36-check smoke run (`cd desktop && npm run smoke`) drives the real app in an isolated home folder, from source or against a packaged build; CI runs it on Windows.
+- The Release workflow builds the desktop program on Windows, verifies the packaged build, attests it and attaches it to the Release.
+
+### Fixed
+- Uninstalling the last skill from an agent folder that SkillForge created on an earlier install now removes the empty folders created along with it. Folders that existed before, or still hold other files, are kept.
 
 ### Known limitations
 - Windows x64 only, and not code-signed: Windows SmartScreen warns on first run.
-- Gemini CLI, Windsurf, Kiro, Goose, Trae, Qoder, CodeBuddy and ZCode folders are not built in; add them manually.
-- The package version stays 0.2.0, so pushing these changes does not trigger a release.
+- Automatic discovery reads folder names only. It does not recognize grouped layouts (`skills/<group>/<skill>/SKILL.md`), nested project folders or agents whose skills live somewhere other than a `skills` folder; add those with **Add folder**.
+- The Doubao folders come from the local runtime configuration of one Windows machine.
+- Folder locations are taken from each agent's documentation, not from testing each agent. Installing was tested for real in the Codex folder and in the folder of an agent that was not installed (Qwen Code); other agents were not exercised.
 
 ## 0.2.0 — 2026-11-26
 

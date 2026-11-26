@@ -21,7 +21,7 @@ SkillForge keeps domain logic independent from React and platform conventions.
 | `app` | Next.js-style page routing and metadata, served by Vinext |
 | `worker` / `build` | Cloudflare-compatible application entry and Sites packaging |
 
-The browser is the data boundary. No cloud database or user account system is part of v0.2.0. Library state and evaluation history use an origin-scoped JSON snapshot. Keys remain in component memory. Demo and normal data use separate keys. Invalid draft text fields survive reload; export requires a valid schema. Unreadable persisted data disables autosave instead of overwriting it.
+The browser is the data boundary of the web version. No cloud database or user account system is part of SkillForge. Library state and evaluation history use an origin-scoped JSON snapshot (a local file in the desktop app, see Desktop app below). Keys remain in component memory. Demo and normal data use separate keys. Invalid draft text fields survive reload; export requires a valid schema. Unreadable persisted data disables autosave instead of overwriting it.
 
 AI requests are direct browser fetches to a user-configured compatible provider, with HTTPS/localhost validation, timeouts, redirects disabled and secret-pattern checks on the payload. They require CORS support. A provider error becomes a visible error; no simulated fallback is presented as real AI. `postChat` is the single request path shared by the generator, LLM evaluation and the agent loop.
 
@@ -43,7 +43,7 @@ The desktop app does not run server-side rendering. The root Vite config builds 
 
 | Area | Responsibility |
 | --- | --- |
-| `desktop/core/*.mjs` | Plain Node modules with no npm dependencies: path comparison, known agent folders, scanning, install planning and applying, folder watching, the settings store |
+| `desktop/core/*.mjs` | Plain Node modules with no npm dependencies: path comparison, known agent folders (`agents.mjs`), automatic discovery of unknown skill folders by their folder shape (`discover.mjs`), scanning, install planning and applying, folder watching, the settings store |
 | `desktop/electron/main.mjs` | Window, `app://` protocol, IPC handlers, validation of every call, Recycle Bin fallback, single instance |
 | `desktop/electron/preload.cjs` | The fixed list of asynchronous methods exposed to the page |
 | `src/features/local/bridge.ts` | Types, the `desktop` handle, `DesktopStorage` (implements `SkillStorage` over IPC), link record |

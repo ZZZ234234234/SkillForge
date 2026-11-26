@@ -154,3 +154,24 @@ export async function removeInstall(record, { remove = unlink } = {}) {
   await fs.rmdir(record.dir).catch(() => {});
   return { removed };
 }
+
+/**
+ * 从 start 往上删除空目录，到 stop 为止（stop 本身绝不删除）。安装时顺带创建出来的
+ * “Agent 目录/skills”在卸载后不该留下一串空文件夹。
+ * 只删空目录；遇到有内容的目录就停。
+ */
+export async function pruneEmptyDirs(start, stop) {
+  const top = path.resolve(stop);
+  let d = path.resolve(start);
+  let removed = 0;
+  while (isInside(top, d)) {
+    const entries = await fs.readdir(d).catch(() => null);
+    if (!entries || entries.length > 0) break;
+    await fsp_rmdir(d);
+    removed++;
+    d = path.dirname(d);
+  }
+  return removed;
+}
+
+const fsp_rmdir = (d) => fs.rmdir(d).catch(() => {});

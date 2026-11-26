@@ -1,10 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const DEFAULTS = { version: 1, customRoots: [], installs: {} };
+const DEFAULTS = {
+  version: 1,
+  customRoots: [],
+  installs: {},
+  // 安装时由 SkillForge 顺带创建出来的 Agent 技能目录（绝对路径 -> true）。
+  // 卸载时据此决定要不要把这些空目录清掉；用户本来就有的目录不在这里，不会被删。
+  createdRoots: {},
+};
 
 /**
- * 一个很小的 JSON 存档：自定义目录与安装记录。
+ * 一个很小的 JSON 存档：自定义目录、安装记录，以及安装时顺带创建的目录。
  * 写入先落临时文件再重命名，避免写一半留下损坏的存档。
  */
 export function openStore(file) {
@@ -18,6 +25,7 @@ export function openStore(file) {
         customRoots: sanitizeRoots(d.customRoots),
         installs:
           d.installs && typeof d.installs === "object" ? d.installs : {},
+        createdRoots: sanitizeMap(d.createdRoots),
       };
     } catch {
       return structuredClone(DEFAULTS);
@@ -51,6 +59,15 @@ export function openStore(file) {
       }
     },
   };
+}
+
+/** 绝对路径 -> true 的表；其余条目丢弃。 */
+function sanitizeMap(obj) {
+  const out = {};
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return out;
+  for (const [k, v] of Object.entries(obj))
+    if (path.isAbsolute(k) && v === true) out[k] = true;
+  return out;
 }
 
 function sanitizeRoots(list) {

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -125,6 +125,7 @@ export function LocalView({
   const [showProblems, setShowProblems] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmUninstall, setConfirmUninstall] = useState<string | null>(null);
+  const [showAbsent, setShowAbsent] = useState(false);
   const roots = useMemo(() => scan?.roots ?? [], [scan]);
   const home = scan?.home ?? "";
   const byRoot = useMemo(() => Object.fromEntries(roots.map((r) => [r.id, r])), [roots]);
@@ -181,6 +182,9 @@ export function LocalView({
   }, [scan, contents, library, installs, byRoot, query, filter]);
 
   const live = roots.filter((r) => r.exists);
+  // 内置清单里这台电脑上没有的目录默认收起，免得几十行“目录不存在”挡在前面
+  const absent = roots.filter((r) => r.builtin && !r.found && !r.exists && !r.error);
+  const absentIds = new Set(absent.map((r) => r.id));
   const count = scan?.items.length ?? 0;
   const unreadable = roots.filter((r) => r.error).length;
 
@@ -232,20 +236,34 @@ export function LocalView({
           </h3>
           <span className="small muted">
             {t(
-              "内置目录按各 Agent 官方文档的约定；其他 Agent 可用“添加文件夹”加入。",
-              "Built-in folders follow each agent's official documentation. Add any other folder with “Add folder”.",
+              "内置目录按各 Agent 官方文档的约定；不在清单里的 Agent，只要目录符合“某个文件夹/skills/技能名/SKILL.md”也会自动发现，还可以用“添加文件夹”加入。",
+              "Built-in folders follow each agent's official documentation. Any other folder shaped like “<folder>/skills/<name>/SKILL.md” is found automatically, and you can add folders with “Add folder”.",
             )}
           </span>
         </div>
         <ul>
           {roots.map((r) => (
-            <li key={r.id} data-root={r.id}>
+            <li
+              key={r.id}
+              data-root={r.id}
+              className={absentIds.has(r.id) && !showAbsent ? "sf-root-absent" : undefined}
+            >
               <span className="sf-local-root-name">
                 {r.label}
+                {r.found && (
+                  <span className="small muted" data-root-found>
+                    {t(" · 自动发现", " · found automatically")}
+                  </span>
+                )}
                 {r.readers?.length > 0 && (
-                  <span className="small muted">
-                    {t(" · ", " · also read by ")}
-                    {r.readers.join(" / ")}
+                  <span className="small muted" title={r.readers.join(" / ")}>
+                    {r.readers.length > 4
+                      ? t(
+                          ` · 另有 ${r.readers.length} 个 Agent 也会读取`,
+                          ` · also read by ${r.readers.length} other agents`,
+                        )
+                      : t(" · ", " · also read by ")}
+                    {r.readers.length > 4 ? "" : r.readers.join(" / ")}
                   </span>
                 )}
               </span>
@@ -311,6 +329,21 @@ export function LocalView({
             </li>
           ))}
         </ul>
+        {absent.length > 0 && (
+          <button
+            className="text-button sf-local-absent"
+            data-act="toggle-absent"
+            data-absent={absent.length}
+            onClick={() => setShowAbsent(!showAbsent)}
+          >
+            {showAbsent
+              ? t(`收起 ${absent.length} 个这台电脑上没有的内置目录`, `Hide the ${absent.length} built-in folders not on this computer`)
+              : t(
+                  `还有 ${absent.length} 个内置目录这台电脑上没有：${absent.map((r) => r.label).slice(0, 6).join("、")}${absent.length > 6 ? " 等" : ""}`,
+                  `Not on this computer (${absent.length}): ${absent.map((r) => r.label).slice(0, 6).join(", ")}${absent.length > 6 ? "…" : ""}`,
+                )}
+          </button>
+        )}
         {unreadable > 0 && (
           <p className="small sf-local-warn">
             {t(
@@ -582,7 +615,11 @@ export function InstallDialog({
   const [conflicts, setConflicts] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const targets = (scan?.roots ?? []).filter((r) => r.id !== request?.excludeRootId);
+  // 先列这台电脑上有的目录，再列还没安装的 Agent（安装时才会创建）
+  const targets = (scan?.roots ?? [])
+    .filter((r) => r.id !== request?.excludeRootId)
+    .sort((a, b) => Number(b.exists || !b.builtin) - Number(a.exists || !a.builtin));
+  const firstMissing = targets.findIndex((r) => !r.exists && r.builtin);
   const installed = Object.values(installs).filter(
     (r) => request?.skillId && r.skillId === request.skillId,
   );
@@ -666,12 +703,22 @@ export function InstallDialog({
           </div>
         ) : (
           <ul className="sf-install-targets">
-            {targets.map((r) => {
+            {targets.map((r, i) => {
+              const before = i === firstMissing && firstMissing > 0;
               const mine = Object.values(installs).find(
                 (x) => x.rootId === r.id && request?.skillId && x.skillId === request.skillId,
               );
               return (
-                <li key={r.id} data-install-target={r.id}>
+                <Fragment key={r.id}>
+                {before && (
+                  <li className="sf-install-divider" data-install-divider>
+                    {t(
+                      "下面是这台电脑上还没有的 Agent，安装时才创建目录",
+                      "Agents not on this computer yet; their folders are created on install",
+                    )}
+                  </li>
+                )}
+                <li data-install-target={r.id}>
                   <label>
                     <input
                       type="checkbox"
@@ -689,10 +736,16 @@ export function InstallDialog({
                       : mine
                         ? t("已安装，再次安装即更新", "Installed · reinstall to update")
                         : r.readers?.length
-                          ? t(`${r.readers.join("、")} 也会读取`, `also read by ${r.readers.join(", ")}`)
+                          ? r.readers.length > 4
+                            ? t(
+                                `${r.readers.slice(0, 3).join("、")} 等 ${r.readers.length} 个 Agent 也会读取`,
+                                `also read by ${r.readers.slice(0, 3).join(", ")} and ${r.readers.length - 3} more`,
+                              )
+                            : t(`${r.readers.join("、")} 也会读取`, `also read by ${r.readers.join(", ")}`)
                           : ""}
                   </span>
                 </li>
+                </Fragment>
               );
             })}
           </ul>

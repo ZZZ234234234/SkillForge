@@ -34,6 +34,8 @@ put(".config/opencode/skills/flat-tool.md", md("flat-tool", "A flat skill file")
 put(".config/opencode/skills/group/inner-skill/SKILL.md", md("inner-skill", "Nested one level"));
 put(".cursor/skills/alpha-notes/SKILL.md", md("alpha-notes", "existing skill"));
 put(".cursor/skills/alpha-notes/mine.txt", "keep me");
+// 不在内置清单里的 Agent：按“<文件夹>/skills/<技能>/SKILL.md”的约定被自动发现
+put(".smokeagent/skills/found-skill/SKILL.md", md("found-skill", "Lives in a folder nobody listed"));
 
 const env = { ...process.env, SKILLFORGE_DEV_URL: "" };
 delete env.CODEX_HOME; // 否则 Codex 目录会指向真实的 CODEX_HOME

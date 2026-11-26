@@ -13,6 +13,8 @@ export interface LocalRoot {
   reserved: string[];
   path: string;
   builtin: boolean;
+  /** 不在内置清单里、按“<文件夹>/skills/<技能>/SKILL.md”的约定自动发现的目录 */
+  found?: boolean;
   exists: boolean;
   error?: string | null;
   count?: number;

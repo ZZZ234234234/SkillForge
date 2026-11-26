@@ -1,7 +1,7 @@
 {
   "name": "skillforge-desktop",
   "productName": "SkillForge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SkillForge desktop app: scan, sync and install Agent Skills on this computer",
   "private": true,
   "type": "module",

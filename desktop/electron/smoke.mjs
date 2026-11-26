@@ -129,6 +129,51 @@ export async function runSmoke({ win, out, home }) {
   const problems = await js(`document.querySelector('[data-act="problems"]')?.textContent || ""`);
   check("问题目录有提示", /broken|SKILL\.md/.test(problems), problems.trim());
 
+  // 1b. 自动发现：清单外的技能目录被扫到，并标明是自动发现的
+  const found = await js(`(() => {
+    const row = document.querySelector('[data-root^="found-"]');
+    const item = document.querySelector('[data-local-item="found-skill"]');
+    return {
+      ok: true,
+      root: row?.querySelector('.sf-local-root-name')?.textContent.replace(/\\s+/g, ' ').trim() ?? '',
+      state: row?.querySelector('.sf-local-state')?.textContent.trim() ?? '',
+      tag: Boolean(row?.querySelector('[data-root-found]')),
+      listed: item?.querySelector('.sf-local-origin')?.textContent.trim() ?? '',
+    };
+  })()`);
+  check(
+    "清单外的技能目录被自动发现",
+    found.tag && found.root.includes("smokeagent") && found.state.includes("1"),
+    JSON.stringify(found),
+  );
+  check(
+    "自动发现目录里的技能列在列表里",
+    found.listed.includes("smokeagent"),
+    found.listed,
+  );
+  check(
+    "内置目录没有被重复列成自动发现",
+    await js(
+      `[...document.querySelectorAll('[data-root^="found-"]')].every((r) => !/claude|cursor|opencode/i.test(r.querySelector('code')?.textContent || ''))`,
+    ),
+  );
+  // 这台电脑上没有的内置目录默认收起，可以展开再收起
+  const visibleAbsent = async () =>
+    js(
+      `[...document.querySelectorAll('[data-root]')].filter((r) => /目录不存在|Not found/.test(r.querySelector('.sf-local-state')?.textContent || '') && r.offsetParent !== null).length`,
+    );
+  const collapsed = await visibleAbsent();
+  const toggle = await clickIn(`document.querySelector('[data-act="toggle-absent"]')`);
+  await sleep(200);
+  const expanded = await visibleAbsent();
+  await clickIn(`document.querySelector('[data-act="toggle-absent"]')`);
+  await sleep(200);
+  check(
+    "没有安装的 Agent 目录默认收起，可以展开",
+    toggle.ok && collapsed === 0 && expanded > 10 && (await visibleAbsent()) === 0,
+    `collapsed=${collapsed} expanded=${expanded}`,
+  );
+
   // 2. 导入到技能库
   await clickIn(rowExpr("alpha-notes", "Claude Code") + `?.querySelector('[data-act="import"]')`);
   const imported = await waitFor(
@@ -163,6 +208,21 @@ export async function runSmoke({ win, out, home }) {
   check("弹窗标题里是技能名", title.includes("alpha-notes"), title);
   const self = await js(`Boolean(document.querySelector('[data-install-target="claude"]'))`);
   check("不能装回技能自己所在的目录", self === false, self);
+  await snap("04a-install-dialog");
+  const divider = await js(
+    `(() => { const d = document.querySelector('[data-install-divider]');
+      if (!d) return { ok: 'no divider' };
+      const state = (el) => el?.querySelector('.muted')?.textContent.trim() || '';
+      return { text: d.textContent.trim(), before: state(d.previousElementSibling), after: state(d.nextElementSibling) }; })()`,
+  );
+  check(
+    "安装弹窗先列已有的目录，再列未安装的 Agent",
+    divider?.text?.includes("还没有的 Agent") &&
+      !divider.before?.includes("安装时") &&
+      Boolean(divider.before?.includes("也会读取") || divider.before === "") &&
+      divider.after?.includes("安装时"),
+    JSON.stringify(divider),
+  );
   await clickIn(`document.querySelector('[data-install-target="copilot"] input')`);
   await clickIn(`document.querySelector('[data-install-confirm]')`);
   const installed = await waitFor(
@@ -235,6 +295,22 @@ export async function runSmoke({ win, out, home }) {
   );
   check("卸载后“已安装”标记消失", uninstalled.ok, uninstalled.why);
   check("卸载后写入的文件被移除", !(await fsp.stat(copied[0]).catch(() => null)));
+  // 同一个 Agent 目录里还有另一个已安装的技能：这时不能清目录
+  check(
+    "同一目录里还有已安装的技能时不清目录",
+    fs.existsSync(path.join(home, ".copilot", "skills", "lib-made", "SKILL.md")),
+  );
+  // 这个 Agent 的目录是安装时才创建的：里面的技能都卸掉以后，空目录也一并清掉
+  const goneLib = await js(
+    `window.skillforgeDesktop.uninstall({ dir: ${JSON.stringify(path.join(home, ".copilot", "skills", "lib-made"))} })`,
+  );
+  check("卸载技能库里的技能", goneLib?.removed >= 1, JSON.stringify(goneLib));
+  await sleep(600);
+  check(
+    "安装时创建的 Agent 目录在卸载后清掉",
+    !fs.existsSync(path.join(home, ".copilot")),
+    fs.existsSync(path.join(home, ".copilot")) ? "~/.copilot still exists" : "removed",
+  );
 
   // 8. 安全边界（断言具体的拒绝原因，而不是“只要报错就算过”）
   const guard = await js(`(async () => {

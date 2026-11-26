@@ -2,12 +2,24 @@
 //   ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 //   ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const app = path.resolve(here, "..");
+// 桌面包的版本必须与仓库版本一致：Release 的标签按仓库版本生成，安装包的文件名按桌面版本生成
+const readVersion = (dir) =>
+  JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).version;
+const rootVersion = readVersion(path.join(app, ".."));
+const appVersion = readVersion(app);
+if (rootVersion !== appVersion) {
+  console.error(
+    `Version mismatch: package.json is ${rootVersion}, desktop/package.json is ${appVersion}. Make them equal before packaging.`,
+  );
+  process.exit(1);
+}
 // electron-builder 会调用 powershell.exe 来枚举依赖；个别精简的 PATH 里没有它，这里补上系统目录
 const psDir = path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0");
 const env = { ...process.env };
@@ -40,6 +52,7 @@ const needed = [
   "electron/preload.cjs",
   "electron/smoke.mjs",
   "core/agents.mjs",
+  "core/discover.mjs",
   "core/install.mjs",
   "core/paths.mjs",
   "core/scan.mjs",

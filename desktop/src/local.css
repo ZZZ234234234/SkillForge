@@ -92,6 +92,19 @@
   gap: 2px;
   min-width: 0;
 }
+/* 这台电脑上没有的内置目录：默认收起，点一下展开 */
+.sf-local-roots li.sf-root-absent {
+  display: none;
+}
+.sf-local-roots .sf-local-absent {
+  margin-top: 10px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--muted-foreground);
+}
+.sf-local-roots .sf-local-absent:hover {
+  color: var(--foreground);
+}
 .sf-local-state {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -305,6 +318,13 @@
   padding: 9px 12px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
+}
+.sf-install-targets li.sf-install-divider {
+  display: block;
+  padding: 12px 0 2px;
+  border-bottom: none;
+  font-size: 12px;
+  color: var(--muted-foreground);
 }
 .sf-install-targets li:last-child {
   border-bottom: 0;

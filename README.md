@@ -82,21 +82,25 @@ The screenshot above shows the actual deployed site. Public access, search, edit
 | Export | Full ZIP package, SKILL.md, skill.json, README.md; Codex/Claude/Generic directories |
 | Registry | Bundled open catalog, curated ordering, newest, categories, search; PR contribution format |
 | Settings | Chinese/English interface, dark/light mode, endpoint/model settings and memory-only API key |
-| Desktop app (unreleased) | Scans local agent skill folders, installs into them, auto-refresh on folder changes, library stored as a local file; Windows x64, not code-signed |
+| Desktop app (v0.3.0, Windows x64) | Scans the skill folders of local agents (27 built-in folders, plus automatic discovery of others), installs into them, auto-refresh on folder changes, library stored as a local file; not code-signed |
 
 In the browser, “Installed” means installed into the **browser library**, not into an agent or the operating system. The agent features run inside the browser with a small set of in-app tools: no shell, no local filesystem, no package installation. Reading and writing the skill folders on your computer is available in the **desktop app** (see below); a CLI and live community trending are **Coming Soon**. Skills authored in English remain English when the interface language changes.
 
-### Desktop app (unreleased)
+### Desktop app
 
-An Electron app for Windows x64 that works on the skill folders of this computer: it scans the folders of Claude Code, Cursor, Codex, GitHub Copilot, OpenCode and Doubao, adds a skill from a folder to the library, installs a skill into any of those folders, and refreshes when a folder changes. Skills added from disk follow their file; if both the file and the library copy change, you choose which one to keep.
+An Electron app for Windows x64 that works on the skill folders of this computer: it scans the folders of the agents you have installed, adds a skill from a folder to the library, installs a skill into any of those folders, and refreshes when a folder changes. Skills added from disk follow their file; if both the file and the library copy change, you choose which one to keep.
 
-Files that are replaced or uninstalled go to the Recycle Bin, and files that SkillForge did not write are never touched. The library is stored in the app data folder. The app is **not code-signed**, so Windows shows a SmartScreen warning on first run. It is built from source and not yet published on Releases.
+The folders of 27 agents are built in, each taken from the agent's documentation: Claude Code, Cursor, Codex, GitHub Copilot, OpenCode, Doubao, Gemini CLI, Antigravity, Windsurf, Kiro, Trae, Trae CLI, Qoder CLI, QoderWork, CodeBuddy Code, ZCode, Kimi Code CLI, Amp, iFlow CLI, Qwen Code, Cline, Roo Code, OpenHands and Devin. Other agents are **found automatically** by the shape of their skills folder (`<folder>/skills/<name>/SKILL.md`), or can be added with **Add folder**.
+
+Files that are replaced or uninstalled go to the Recycle Bin, and files that SkillForge did not write are never touched. The library is stored in the app data folder. The app is **not code-signed**, so Windows shows a SmartScreen warning on first run.
+
+Download the installer or the portable program from the [Releases page](https://github.com/ZZZ234234234/SkillForge/releases). To run it from source:
 
 ```bash
 cd desktop && npm install && npm run build:ui && npm start
 ```
 
-See the [desktop guide](docs/DESKTOP.md) for the scanned folders, how files are written, the sync rules and what was verified.
+See the [desktop guide](docs/DESKTOP.md) for the scanned folders, how files are written, the sync rules and what was verified, and the [v0.3.0 release notes](docs/RELEASE-v0.3.0.md) for the downloads.
 
 ### Agent runtime and permissions
 
@@ -195,7 +199,7 @@ Secret detection is pattern-based, has false positives and false negatives, and 
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and release notes ([v0.2.0](docs/RELEASE-v0.2.0.md), [v0.1.1](docs/RELEASE-v0.1.1.md)).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). To contribute a Skill, follow [CONTRIBUTING_SKILLS.md](CONTRIBUTING_SKILLS.md). See [architecture](docs/ARCHITECTURE.md), [changelog](CHANGELOG.md) and release notes ([v0.3.0](docs/RELEASE-v0.3.0.md), [v0.2.0](docs/RELEASE-v0.2.0.md), [v0.1.1](docs/RELEASE-v0.1.1.md)).
 
 ## Roadmap
 
@@ -225,6 +229,6 @@ SkillForge 是一个本地优先的 AI Agent Skills 创建与管理工具。Skil
 
 v0.2 新增两个入口：**Agent 试运行**选一个技能和任务，按技能的权限真实调用工具，每次调用和授权都记录在轨迹里；**管家 Agent**用对话检索、新建和修改技能库，改动前每次都要你确认。测试页新增 **Agent 评测**，对真实输出判定断言。Agent 只能使用浏览器内的少量工具，不能执行 shell，也不能改动你电脑上的文件。
 
-另有一个**桌面版**（Electron，Windows，尚未正式发布）：直接扫描这台电脑上 Claude Code、Cursor、Codex、GitHub Copilot、OpenCode、豆包的技能文件夹，可以把技能安装进去，文件夹有变化会自动刷新；被覆盖或卸载的文件进回收站，不是 SkillForge 写入的文件不会动。桌面版没有代码签名，首次运行会出现 Windows SmartScreen 提示。详见[桌面版说明](docs/DESKTOP.md)（英文）。
+另有一个**桌面版**（Electron，Windows，[v0.3.0 起在 Releases 提供](https://github.com/ZZZ234234234/SkillForge/releases)安装版和便携版）：直接扫描这台电脑上各 Agent 的技能文件夹（内置 27 个 Agent 的目录，其余按目录形状自动发现，也可手动添加），可以把技能安装进去，文件夹有变化会自动刷新；被覆盖或卸载的文件进回收站，不是 SkillForge 写入的文件不会动。桌面版没有代码签名，首次运行会出现 Windows SmartScreen 提示。详见[桌面版说明](docs/DESKTOP.md)（英文）。
 
 作者：爱吃孜然芥末。邮箱：2014546082@qq.com。正式发行只认官方 GitHub Releases；源码 Fork 可以正常使用，但不代表作者官方发行。
