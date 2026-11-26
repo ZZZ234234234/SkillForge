@@ -22,7 +22,9 @@ The runtime has no shell, no local filesystem access and no package installation
 
 ## Status
 
-Source changes only. No GitHub Release, checksum, attestation or deployment exists for v0.2.0 yet.
+v0.2.0 was published on 2026-11-26 by the repository's Release workflow from commit `14b9a6b`, because the workflow publishes a version on push to `main` when no Release with that tag exists. The [run](https://github.com/ZZZ234234234/SkillForge/actions/runs/45810315387) passed every step, including typecheck, lint, test, build, integration, packaging, attestation and publish. Assets: `SkillForge-v0.2.0-source.zip`, `SkillForge-v0.2.0-web.zip`, `SHA256SUMS.txt`. The attestation step succeeded; the attestation record itself was not independently checked.
+
+The hosted Demo was not redeployed as part of this change.
 
 ## Author
 

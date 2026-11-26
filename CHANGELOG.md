@@ -18,8 +18,8 @@
 ### Known limitations
 - No shell, local filesystem access, package installation or sandboxed execution. `web_fetch` is subject to browser CORS.
 - Requires a model that returns OpenAI-style `tool_calls`; provider support varies.
-- The runtime was verified against a scripted mock provider in a desktop browser, not against a paid model.
-- No GitHub Release, attestation or deployment has been made for 0.2.0.
+- Verified against a scripted mock provider in a desktop browser, not against a paid model.
+- Published automatically as v0.2.0 by the Release workflow on push to `main`; the hosted Demo was not redeployed.
 
 ## 0.1.1 — 2026-09-08
 
