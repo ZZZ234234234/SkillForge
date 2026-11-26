@@ -72,6 +72,14 @@ Sources for each folder are listed in [docs/DESKTOP.md](DESKTOP.md). Other agent
 
 ## Status
 
-Published automatically as v0.3.0 by the Release workflow on push to `main`. The workflow's `desktop` job builds the Windows program, verifies the packaged build, attests it and attaches it to this Release. The hosted Demo was not redeployed.
+v0.3.0 was published on 2026-11-26 by the repository's Release workflow from commit `4ad4342`, because the workflow publishes a version on push to `main` when no Release with that tag exists. The [run](https://github.com/ZZZ234234234/SkillForge/actions/runs/45831811270) passed every step in both jobs: typecheck, lint, test, build, integration, packaging, attestation and publish for the web archives; build, packaging, verification of the packaged program, attestation and upload for the desktop programs. The [CI run](https://github.com/ZZZ234234234/SkillForge/actions/runs/45831811174) for the same commit passed as well.
+
+Assets: `SkillForge-Setup-0.3.0-x64.exe` (121,733,889 bytes), `SkillForge-0.3.0-x64-portable.exe` (110,757,784 bytes), `SHA256SUMS-desktop.txt`, `SkillForge-v0.3.0-source.zip`, `SkillForge-v0.3.0-web.zip`, `SHA256SUMS.txt`.
+
+What was not checked:
+
+- The attestation records themselves were not opened.
+- The two programs attached to the Release were not downloaded and run afterwards. The workflow's verification step ran the smoke checks on the unpacked program it had just built on the runner, not on the installer. Installing through `SkillForge-Setup-0.3.0-x64.exe` has not been exercised anywhere: the local checks used the unpacked build and the portable program.
+- The hosted Demo was not redeployed.
 
 Author: ZZZ234234234 (pyjx3141@gmail.com)
